@@ -18,5 +18,7 @@ jobs:
         run: cargo check
       - name: Test
         run: cargo test
+      - name: Clean tree
+        run: git diff --exit-code && git diff --cached --exit-code
       - name: Clippy
         run: cargo clippy -- -D warnings

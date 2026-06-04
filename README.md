@@ -38,11 +38,6 @@ ctxt --help
 ctxt doctor
 ctxt providers list
 ctxt version
-```
-
-Planned commands:
-
-```bash
 ctxt context inspect
 ctxt context pack --task "..."
 ctxt ask --dry-run "..."

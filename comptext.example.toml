@@ -27,7 +27,9 @@ auth_env = "OLLAMA_API_KEY"
 [providers.openai-compatible]
 kind = "openai-compatible"
 base_url = "http://localhost:11434/v1"
+model = "gpt-4o"
 auth_env = "OPTIONAL_API_KEY"
+network = false
 
 
 [policy]

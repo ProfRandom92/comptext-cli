@@ -127,6 +127,58 @@ impl Provider for OllamaProvider {
     }
 }
 
+pub struct OpenaiProvider {
+    pub name: String,
+    pub base_url: String,
+    pub model: Option<String>,
+    pub auth_env: Option<String>,
+    pub allow_network: bool,
+}
+
+impl Provider for OpenaiProvider {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn execute(&self, request: &ModelRequest) -> Result<ModelResponse, String> {
+        if !self.allow_network {
+            return Err("Network access denied by security policy. Enable allow_provider_network in config to allow live execution.".to_string());
+        }
+
+        let model_name = self.model.clone().unwrap_or_else(|| "gpt-4o".to_string());
+        let _ = &self.base_url;
+        let _ = &self.auth_env;
+
+        let file_count = if let Some(sys_msg) = request.messages.iter().find(|m| m.role == "system")
+        {
+            sys_msg.content.matches("=== FILE: ").count()
+        } else {
+            0
+        };
+
+        let user_prompt = request
+            .messages
+            .iter()
+            .find(|m| m.role == "user")
+            .map(|m| m.content.as_str())
+            .unwrap_or("");
+
+        let content = format!(
+            "Mock OpenAI response from CompText OpenAI-compatible Provider (Skeleton).\n\
+             Model: {model_name}\n\
+             Received prompt: \"{user_prompt}\"\n\
+             Workspace context analyzed successfully: {file_count} files included.\n\
+             OpenAI status: offline-test-provider ok."
+        );
+
+        Ok(ModelResponse {
+            provider: self.name.clone(),
+            model: model_name,
+            content,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -174,5 +226,73 @@ mod tests {
         let res = provider.execute(&request);
         assert!(res.is_err());
         assert!(res.unwrap_err().contains("HTTP request to Ollama failed"));
+    }
+
+    #[test]
+    fn test_openai_fails_closed_without_network() {
+        let provider = OpenaiProvider {
+            name: "openai-compatible".to_string(),
+            base_url: "http://localhost:11434/v1".to_string(),
+            model: Some("gpt-4o".to_string()),
+            auth_env: None,
+            allow_network: false,
+        };
+        let request = ModelRequest {
+            provider: "openai-compatible".to_string(),
+            model: "dummy-model".to_string(),
+            messages: vec![Message {
+                role: "user".to_string(),
+                content: "hello".to_string(),
+            }],
+        };
+        let res = provider.execute(&request);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("Network access denied by security policy"));
+    }
+
+    #[test]
+    fn test_openai_request_serialization_shape() {
+        let model = Some("gpt-4o".to_string());
+        let messages = vec![Message {
+            role: "user".to_string(),
+            content: "hello".to_string(),
+        }];
+        let model_name = model.clone().unwrap_or_else(|| "gpt-4o".to_string());
+        let payload = serde_json::json!({
+            "model": model_name,
+            "messages": messages
+        });
+
+        let payload_str = serde_json::to_string(&payload).unwrap();
+        assert!(payload_str.contains("\"model\":\"gpt-4o\""));
+        assert!(payload_str.contains("\"content\":\"hello\""));
+        assert!(payload_str.contains("\"role\":\"user\""));
+    }
+
+    #[test]
+    fn test_openai_no_network_call_made() {
+        let provider = OpenaiProvider {
+            name: "openai-compatible".to_string(),
+            base_url: "http://localhost:11434/v1".to_string(),
+            model: Some("gpt-4o".to_string()),
+            auth_env: None,
+            allow_network: true,
+        };
+        let request = ModelRequest {
+            provider: "openai-compatible".to_string(),
+            model: "gpt-4o".to_string(),
+            messages: vec![Message {
+                role: "user".to_string(),
+                content: "hello".to_string(),
+            }],
+        };
+        let res = provider.execute(&request);
+        assert!(res.is_ok());
+        let resp = res.unwrap();
+        assert_eq!(resp.provider, "openai-compatible");
+        assert_eq!(resp.model, "gpt-4o");
+        assert!(resp.content.contains("Mock OpenAI response from CompText"));
     }
 }

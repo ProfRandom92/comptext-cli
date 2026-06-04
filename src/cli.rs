@@ -15,6 +15,7 @@ pub struct ProviderProfile {
     pub kind: String,
     pub network: Option<bool>,
     pub base_url: Option<String>,
+    pub model: Option<String>,
     pub auth: Option<String>,
     pub auth_env: Option<String>,
     pub model_suffix: Option<String>,
@@ -756,10 +757,28 @@ fn handle_ask(
     std::fs::write(".comptext/model_request.latest.json", req_json)
         .map_err(|e| format!("failed to write model request: {e}"))?;
 
+    if profile.kind == "openai-compatible" {
+        let model_name = profile
+            .model
+            .clone()
+            .unwrap_or_else(|| "gpt-4o".to_string());
+        let openai_payload = serde_json::json!({
+            "model": model_name,
+            "messages": request.messages
+        });
+        let openai_req_json = serde_json::to_string_pretty(&openai_payload)
+            .map_err(|e| format!("failed to serialize OpenAI payload: {e}"))?;
+        std::fs::write(".comptext/openai_request.latest.json", openai_req_json)
+            .map_err(|e| format!("failed to write OpenAI request artifact: {e}"))?;
+    }
+
     if resolved_dry_run {
         println!("Dry-run successful.");
         println!("Context Pack: .comptext/context_pack.latest.json");
         println!("Model Request: .comptext/model_request.latest.json");
+        if profile.kind == "openai-compatible" {
+            println!("OpenAI Request: .comptext/openai_request.latest.json");
+        }
         return Ok(());
     }
 
@@ -793,6 +812,36 @@ fn handle_ask(
                 base_url: url,
                 model_suffix: suffix,
                 auth_env: auth,
+            };
+
+            let response = prov.execute(&request)?;
+
+            let resp_json = serde_json::to_string_pretty(&response)
+                .map_err(|e| format!("failed to serialize model response: {e}"))?;
+
+            std::fs::write(".comptext/model_response.latest.json", resp_json)
+                .map_err(|e| format!("failed to write model response: {e}"))?;
+
+            println!("Response from {} provider:", prov.name());
+            println!("{}", response.content);
+            Ok(())
+        }
+        "openai-compatible" => {
+            use crate::provider::{OpenaiProvider, Provider};
+            let url = profile
+                .base_url
+                .clone()
+                .unwrap_or_else(|| "http://localhost:11434/v1".to_string());
+            let model = profile.model.clone();
+            let auth = profile.auth_env.clone();
+            let allow_net = config.policy.allow_provider_network && profile.network.unwrap_or(true);
+
+            let prov = OpenaiProvider {
+                name: resolved_provider.to_string(),
+                base_url: url,
+                model,
+                auth_env: auth,
+                allow_network: allow_net,
             };
 
             let response = prov.execute(&request)?;
@@ -853,6 +902,21 @@ fn handle_propose(provider_name: Option<&str>, task: &str, config: &Config) -> R
     std::fs::write(".comptext/model_request.latest.json", req_json)
         .map_err(|e| format!("failed to write model request: {e}"))?;
 
+    if profile.kind == "openai-compatible" {
+        let model_name = profile
+            .model
+            .clone()
+            .unwrap_or_else(|| "gpt-4o".to_string());
+        let openai_payload = serde_json::json!({
+            "model": model_name,
+            "messages": request.messages
+        });
+        let openai_req_json = serde_json::to_string_pretty(&openai_payload)
+            .map_err(|e| format!("failed to serialize OpenAI payload: {e}"))?;
+        std::fs::write(".comptext/openai_request.latest.json", openai_req_json)
+            .map_err(|e| format!("failed to write OpenAI request artifact: {e}"))?;
+    }
+
     let response = match profile.kind.as_str() {
         "dummy" => {
             use crate::provider::{DummyProvider, Provider};
@@ -873,6 +937,25 @@ fn handle_propose(provider_name: Option<&str>, task: &str, config: &Config) -> R
                 base_url: url,
                 model_suffix: suffix,
                 auth_env: auth,
+            };
+            prov.execute(&request)?
+        }
+        "openai-compatible" => {
+            use crate::provider::{OpenaiProvider, Provider};
+            let url = profile
+                .base_url
+                .clone()
+                .unwrap_or_else(|| "http://localhost:11434/v1".to_string());
+            let model = profile.model.clone();
+            let auth = profile.auth_env.clone();
+            let allow_net = config.policy.allow_provider_network && profile.network.unwrap_or(true);
+
+            let prov = OpenaiProvider {
+                name: resolved_provider.to_string(),
+                base_url: url,
+                model,
+                auth_env: auth,
+                allow_network: allow_net,
             };
             prov.execute(&request)?
         }
@@ -1328,6 +1411,7 @@ mod tests {
                 kind: "ollama".to_string(),
                 network: Some(true),
                 base_url: Some("http://localhost".to_string()),
+                model: None,
                 auth: Some("secret_key_1234567890".to_string()),
                 auth_env: None,
                 model_suffix: None,
@@ -1351,6 +1435,58 @@ mod tests {
 
         let name = "secret-prov";
         let profile = &config.providers[name];
+        let mut auth_str = if let Some(ref auth) = profile.auth {
+            format!("auth={}", auth)
+        } else {
+            String::new()
+        };
+
+        let auth_lower = auth_str.to_lowercase();
+        if auth_lower.contains("secret")
+            || auth_lower.contains("password")
+            || auth_lower.contains("token")
+            || auth_lower.contains("key")
+        {
+            if !auth_lower.contains("ollama_api_key") && !auth_lower.contains("optional_api_key") {
+                auth_str = "auth=[REDACTED-METADATA]".to_string();
+            }
+        }
+
+        assert_eq!(auth_str, "auth=[REDACTED-METADATA]");
+    }
+
+    #[test]
+    fn test_openai_secret_redaction() {
+        let mut providers = HashMap::new();
+        providers.insert(
+            "openai-secret".to_string(),
+            ProviderProfile {
+                kind: "openai-compatible".to_string(),
+                network: Some(false),
+                base_url: Some("http://localhost/v1".to_string()),
+                model: Some("gpt-4o".to_string()),
+                auth: Some("sk-proj-supersecretkeyhere".to_string()),
+                auth_env: None,
+                model_suffix: None,
+            },
+        );
+
+        let config = Config {
+            defaults: Defaults {
+                provider: "openai-secret".to_string(),
+                dry_run_default: true,
+                proposal_required: true,
+            },
+            providers,
+            policy: PolicyConfig {
+                network_default: "deny".to_string(),
+                allow_provider_network: false,
+                secrets_redaction: true,
+                apply_requires_confirmation: true,
+            },
+        };
+
+        let profile = &config.providers["openai-secret"];
         let mut auth_str = if let Some(ref auth) = profile.auth {
             format!("auth={}", auth)
         } else {

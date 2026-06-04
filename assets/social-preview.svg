@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">CompText CLI GitHub social preview</title>
+  <desc id="desc">Social preview image for CompText CLI with terminal-inspired context compression design.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#070B16"/>
+      <stop offset="55%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#1E1B4B"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7CFFB2"/>
+      <stop offset="50%" stop-color="#58D5FF"/>
+      <stop offset="100%" stop-color="#A78BFA"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#58D5FF" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#58D5FF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <circle cx="960" cy="150" r="260" fill="url(#glow)"/>
+  <circle cx="220" cy="520" r="260" fill="url(#glow)" opacity="0.55"/>
+
+  <g opacity="0.16" stroke="#94A3B8" stroke-width="1">
+    <path d="M0 120h1280M0 240h1280M0 360h1280M0 480h1280"/>
+    <path d="M160 0v640M320 0v640M480 0v640M640 0v640M800 0v640M960 0v640M1120 0v640"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="86" y="120" width="316" height="316" rx="78" fill="#0F172A" stroke="url(#accent)" stroke-width="10"/>
+    <path d="M166 228h126c42 0 72 30 72 72s-30 72-72 72H206" fill="none" stroke="url(#accent)" stroke-width="34" stroke-linecap="round"/>
+    <path d="M206 190v220" stroke="#F8FAFC" stroke-width="34" stroke-linecap="round"/>
+    <path d="M152 300h170" stroke="#F8FAFC" stroke-width="34" stroke-linecap="round"/>
+    <circle cx="326" cy="382" r="18" fill="#7CFFB2"/>
+  </g>
+
+  <text x="460" y="228" fill="#F8FAFC" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="76" font-weight="850" letter-spacing="-2.2">CompText CLI</text>
+  <text x="466" y="292" fill="#CBD5E1" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="30" font-weight="600">Models are providers. Context is the product.</text>
+  <text x="466" y="358" fill="#7CFFB2" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="36" font-weight="800">Compress the noise, preserve the proof.</text>
+
+  <g transform="translate(468 430)">
+    <rect x="0" y="0" width="568" height="72" rx="18" fill="#020617" stroke="#334155"/>
+    <text x="28" y="45" fill="#58D5FF" font-family="SFMono-Regular, Consolas, Liberation Mono, monospace" font-size="25" font-weight="700">ctxt benchmark --provider dummy "..."</text>
+  </g>
+
+  <text x="92" y="548" fill="#94A3B8" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="24" font-weight="600">context packs • proposal gates • validation evidence • local-first</text>
+</svg>

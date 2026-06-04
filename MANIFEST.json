@@ -1,0 +1,32 @@
+{
+  "package": "comptext-cli-repo-ready",
+  "target_repository": "ProfRandom92/comptext-cli",
+  "binary": "ctxt",
+  "language": "Rust",
+  "purpose": "Push-ready fresh repo scaffold prepared for Antigravity CLI phase-scoped autonomous implementation.",
+  "includes": [
+    "Rust Cargo scaffold",
+    "AGENTS.md",
+    "phase skills",
+    ".agents SKILL.md directories",
+    "MCP example config",
+    "Antigravity prompts",
+    "CI workflow",
+    "docs",
+    "security/claim hygiene"
+  ],
+  "validation": [
+    "cargo fmt --all --check",
+    "cargo check",
+    "cargo test",
+    "cargo clippy -- -D warnings",
+    "cargo run --bin ctxt -- --help",
+    "cargo run --bin ctxt -- doctor",
+    "cargo run --bin ctxt -- providers list",
+    "cargo run --bin ctxt -- version"
+  ],
+  "created_from": [
+    "comptext-cli-antigravity-prepared.zip",
+    "CompText CLI Genesis project source"
+  ]
+}

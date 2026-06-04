@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "google-developer-knowledge": {
+      "httpUrl": "https://developerknowledge.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "<YOUR_API_KEY>"
+      }
+    },
+    "git": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-git"
+      ]
+    }
+  }
+}

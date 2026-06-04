@@ -19,9 +19,9 @@ CompText CLI is an experimental terminal context client for building determinist
 
 ### Current State
 ```text
-CURRENT_PHASE: 7
-CURRENT_TASK: Provider Config Layer
-LAST_GREEN_PHASE: 6
+CURRENT_PHASE: 8
+CURRENT_TASK: OpenAI-Compatible Adapter
+LAST_GREEN_PHASE: 7
 STATUS: active
 ```
 
@@ -81,8 +81,8 @@ git push
 | **Phase 4C** | Long-Run Autonomy Hardening | Harden state machine progression rules and git safety boundaries | **COMPLETE** |
 | **Phase 5** | Proposal Mode | Implement `ctxt propose` to output changes as structured proposals | **COMPLETE** |
 | **Phase 6** | Apply Gate | Implement `ctxt apply` to confirm/apply changes and run verification | **COMPLETE** |
-| **Phase 7** | Provider Config Layer | Support dynamic provider profile switching and configurations | **ACTIVE** |
-| **Phase 8** | OpenAI-Compatible Adapter | Implement OpenAI adapter skeleton | *QUEUED* |
+| **Phase 7** | Provider Config Layer | Support dynamic provider profile switching and configurations | **COMPLETE** |
+| **Phase 8** | OpenAI-Compatible Adapter | Implement OpenAI adapter skeleton | **ACTIVE** |
 | **Phase 9** | Validate and Benchmark | Local validation, dry-runs, and deterministic benchmark flows | *QUEUED* |
 
 ---

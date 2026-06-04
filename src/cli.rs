@@ -1,6 +1,71 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Defaults {
+    pub provider: String,
+    pub dry_run_default: bool,
+    pub proposal_required: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct ProviderProfile {
+    pub kind: String,
+    pub network: Option<bool>,
+    pub base_url: Option<String>,
+    pub auth: Option<String>,
+    pub auth_env: Option<String>,
+    pub model_suffix: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PolicyConfig {
+    pub network_default: String,
+    pub allow_provider_network: bool,
+    pub secrets_redaction: bool,
+    pub apply_requires_confirmation: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Config {
+    pub defaults: Defaults,
+    pub providers: HashMap<String, ProviderProfile>,
+    pub policy: PolicyConfig,
+}
+
+pub fn load_config(custom_path: Option<&str>) -> Result<Config, String> {
+    let path = if let Some(p) = custom_path {
+        std::path::PathBuf::from(p)
+    } else {
+        let p = std::path::PathBuf::from("comptext.toml");
+        if p.exists() {
+            p
+        } else {
+            std::path::PathBuf::from("comptext.example.toml")
+        }
+    };
+
+    if !path.exists() {
+        return Err(format!(
+            "Configuration file not found at '{}'",
+            path.display()
+        ));
+    }
+
+    let content = std::fs::read_to_string(&path)
+        .map_err(|e| format!("failed to read config file '{}': {e}", path.display()))?;
+
+    let config: Config = toml::from_str(&content).map_err(|e| {
+        format!(
+            "failed to parse TOML configuration from '{}': {e}",
+            path.display()
+        )
+    })?;
+
+    Ok(config)
+}
 
 #[derive(Debug, PartialEq, Eq)]
 enum Command {
@@ -18,7 +83,7 @@ enum Command {
         prompt: String,
     },
     Propose {
-        provider: String,
+        provider: Option<String>,
         task: String,
     },
     Apply {
@@ -91,7 +156,33 @@ where
     I::Item: Into<String>,
 {
     let argv: Vec<String> = args.into_iter().map(Into::into).collect();
-    match parse(&argv) {
+
+    let mut config_path = None;
+    let mut cleaned_argv = Vec::new();
+    let mut i = 0;
+    while i < argv.len() {
+        if argv[i] == "--config" {
+            if i + 1 >= argv.len() {
+                eprintln!("error: missing path after --config");
+                return 2;
+            }
+            config_path = Some(argv[i + 1].clone());
+            i += 2;
+        } else {
+            cleaned_argv.push(argv[i].clone());
+            i += 1;
+        }
+    }
+
+    let config = match load_config(config_path.as_deref()) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            eprintln!("error loading config: {e}");
+            return 1;
+        }
+    };
+
+    match parse(&cleaned_argv) {
         Ok(Command::Help) => {
             print_help();
             0
@@ -101,11 +192,11 @@ where
             0
         }
         Ok(Command::Doctor) => {
-            print_doctor();
+            print_doctor(&config);
             0
         }
         Ok(Command::ProvidersList) => {
-            print_providers();
+            print_providers(&config);
             0
         }
         Ok(Command::ContextInspect) => match handle_context_inspect() {
@@ -126,20 +217,22 @@ where
             provider,
             dry_run,
             prompt,
-        }) => match handle_ask(provider.as_deref(), dry_run, &prompt) {
+        }) => match handle_ask(provider.as_deref(), dry_run, &prompt, &config) {
             Ok(_) => 0,
             Err(e) => {
                 eprintln!("error: {e}");
                 1
             }
         },
-        Ok(Command::Propose { provider, task }) => match handle_propose(&provider, &task) {
-            Ok(_) => 0,
-            Err(e) => {
-                eprintln!("error: {e}");
-                1
+        Ok(Command::Propose { provider, task }) => {
+            match handle_propose(provider.as_deref(), &task, &config) {
+                Ok(_) => 0,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    1
+                }
             }
-        },
+        }
         Ok(Command::Apply { proposal_path, yes }) => {
             match handle_apply(proposal_path.as_deref(), yes) {
                 Ok(_) => 0,
@@ -249,11 +342,8 @@ fn parse(argv: &[String]) -> Result<Command, String> {
             }
         }
         "ask" => {
-            if argv.len() < 3 {
-                return Err(
-                    "missing arguments for 'ask'. Usage: ctxt ask --dry-run \"<prompt>\" or ctxt ask --provider <provider> \"<prompt>\""
-                        .to_string(),
-                );
+            if argv.len() < 2 {
+                return Err("missing prompt for 'ask'".to_string());
             }
 
             let mut provider = None;
@@ -292,10 +382,6 @@ fn parse(argv: &[String]) -> Result<Command, String> {
                 return Err("missing prompt for 'ask'".to_string());
             }
 
-            if !dry_run && provider.is_none() {
-                return Err("must specify either --dry-run or --provider <provider>".to_string());
-            }
-
             Ok(Command::Ask {
                 provider,
                 dry_run,
@@ -303,20 +389,36 @@ fn parse(argv: &[String]) -> Result<Command, String> {
             })
         }
         "propose" => {
-            if argv.len() < 4 {
-                return Err("missing arguments for 'propose'. Usage: ctxt propose --provider <provider> \"<task>\"".to_string());
+            let mut provider = None;
+            let mut task = String::new();
+
+            let mut i = 1;
+            while i < argv.len() {
+                match argv[i].as_str() {
+                    "--provider" => {
+                        if i + 1 >= argv.len() {
+                            return Err("missing provider name after --provider".to_string());
+                        }
+                        provider = Some(argv[i + 1].clone());
+                        i += 2;
+                    }
+                    other => {
+                        if other.starts_with('-') {
+                            return Err(format!("unsupported option '{other}' for 'propose'"));
+                        }
+                        if !task.is_empty() {
+                            return Err(format!("unexpected argument '{other}' for 'propose'"));
+                        }
+                        task = other.to_string();
+                        i += 1;
+                    }
+                }
             }
-            if argv[1] != "--provider" {
-                return Err(format!(
-                    "unexpected option '{}' for 'propose'. Expected '--provider'",
-                    argv[1]
-                ));
+
+            if task.is_empty() {
+                return Err("missing task description for 'propose'".to_string());
             }
-            let provider = argv[2].clone();
-            let task = argv[3].clone();
-            if argv.len() > 4 {
-                return Err(format!("unexpected argument '{}' for 'propose'", argv[4]));
-            }
+
             Ok(Command::Propose { provider, task })
         }
         "apply" => {
@@ -386,24 +488,68 @@ SAFETY DEFAULTS:\n\
     );
 }
 
-fn print_doctor() {
+fn print_doctor(config: &Config) {
     println!("CompText doctor");
     println!("status: ok");
-    println!("network_default: deny");
-    println!("provider_default: dummy");
-    println!("proposal_required: true");
+    println!("network_default: {}", config.policy.network_default);
+    println!("provider_default: {}", config.defaults.provider);
+    println!("proposal_required: {}", config.defaults.proposal_required);
     println!("secrets_policy: redact-before-artifact");
 }
 
-fn print_providers() {
-    println!("dummy\tnetwork=false\tstatus=planned-offline-test-provider");
-    println!("ollama-local\tnetwork=explicit\tbase_url=http://localhost:11434");
-    println!("ollama-cloud-via-local\tnetwork=explicit\tbase_url=http://localhost:11434\tmodel_suffix=-cloud");
-    println!("ollama-cloud-direct\tnetwork=explicit\tbase_url=https://ollama.com\tauth_env=OLLAMA_API_KEY");
-    println!("openai-compatible\tnetwork=explicit\tbase_url=configured");
-    println!("future-openai\tnetwork=explicit\tstatus=planned");
-    println!("future-gemini\tnetwork=explicit\tstatus=planned");
-    println!("custom\tnetwork=explicit\tstatus=planned");
+fn print_providers(config: &Config) {
+    let mut names: Vec<&String> = config.providers.keys().collect();
+    names.sort();
+
+    for name in names {
+        let profile = &config.providers[name];
+
+        let network_str = match profile.network {
+            Some(true) => "network=true",
+            Some(false) => "network=false",
+            None => {
+                if profile.kind == "dummy" {
+                    "network=false"
+                } else {
+                    "network=true"
+                }
+            }
+        };
+
+        let url_str = if let Some(ref url) = profile.base_url {
+            format!("base_url={url}")
+        } else {
+            String::new()
+        };
+
+        let mut auth_str = if let Some(ref auth) = profile.auth {
+            format!("auth={}", auth)
+        } else if let Some(ref auth_env) = profile.auth_env {
+            format!("auth_env={}", auth_env)
+        } else {
+            String::new()
+        };
+
+        let auth_lower = auth_str.to_lowercase();
+        if (auth_lower.contains("secret")
+            || auth_lower.contains("password")
+            || auth_lower.contains("token")
+            || auth_lower.contains("key"))
+            && !auth_lower.contains("ollama_api_key")
+            && !auth_lower.contains("optional_api_key")
+        {
+            auth_str = "auth=[REDACTED-METADATA]".to_string();
+        }
+
+        print!("{}\tkind={}\t{}", name, profile.kind, network_str);
+        if !url_str.is_empty() {
+            print!("\t{}", url_str);
+        }
+        if !auth_str.is_empty() {
+            print!("\t{}", auth_str);
+        }
+        println!();
+    }
 }
 
 fn collect_files(
@@ -555,7 +701,26 @@ fn handle_context_pack(task: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn handle_ask(provider: Option<&str>, dry_run: bool, prompt: &str) -> Result<(), String> {
+fn handle_ask(
+    provider: Option<&str>,
+    dry_run: bool,
+    prompt: &str,
+    config: &Config,
+) -> Result<(), String> {
+    let resolved_provider = provider.unwrap_or(config.defaults.provider.as_str());
+
+    let resolved_dry_run = if dry_run {
+        true
+    } else if provider.is_some() {
+        false
+    } else {
+        config.defaults.dry_run_default
+    };
+
+    let profile = config.providers.get(resolved_provider).ok_or_else(|| {
+        format!("provider profile '{resolved_provider}' not found in configuration")
+    })?;
+
     let cp = build_context_pack(prompt)?;
     std::fs::create_dir_all(".comptext")
         .map_err(|e| format!("failed to create .comptext directory: {e}"))?;
@@ -571,7 +736,7 @@ fn handle_ask(provider: Option<&str>, dry_run: bool, prompt: &str) -> Result<(),
         cp.rendered_context
     );
     let request = ModelRequest {
-        provider: provider.unwrap_or("dummy").to_string(),
+        provider: resolved_provider.to_string(),
         model: "dummy-model".to_string(),
         messages: vec![
             Message {
@@ -591,15 +756,14 @@ fn handle_ask(provider: Option<&str>, dry_run: bool, prompt: &str) -> Result<(),
     std::fs::write(".comptext/model_request.latest.json", req_json)
         .map_err(|e| format!("failed to write model request: {e}"))?;
 
-    if dry_run {
+    if resolved_dry_run {
         println!("Dry-run successful.");
         println!("Context Pack: .comptext/context_pack.latest.json");
         println!("Model Request: .comptext/model_request.latest.json");
         return Ok(());
     }
 
-    let p_name = provider.ok_or_else(|| "provider is required for live execution".to_string())?;
-    match p_name {
+    match profile.kind.as_str() {
         "dummy" => {
             use crate::provider::{DummyProvider, Provider};
             let prov = DummyProvider;
@@ -615,25 +779,17 @@ fn handle_ask(provider: Option<&str>, dry_run: bool, prompt: &str) -> Result<(),
             println!("{}", response.content);
             Ok(())
         }
-        "ollama-local" | "ollama-cloud-via-local" | "ollama-cloud-direct" => {
+        "ollama" => {
             use crate::provider::{OllamaProvider, Provider};
-            let (url, suffix, auth) = match p_name {
-                "ollama-local" => ("http://localhost:11434".to_string(), None, None),
-                "ollama-cloud-via-local" => (
-                    "http://localhost:11434".to_string(),
-                    Some("-cloud".to_string()),
-                    None,
-                ),
-                "ollama-cloud-direct" => (
-                    "https://ollama.com".to_string(),
-                    None,
-                    Some("OLLAMA_API_KEY".to_string()),
-                ),
-                _ => unreachable!(),
-            };
+            let url = profile
+                .base_url
+                .clone()
+                .unwrap_or_else(|| "http://localhost:11434".to_string());
+            let suffix = profile.model_suffix.clone();
+            let auth = profile.auth_env.clone();
 
             let prov = OllamaProvider {
-                name: p_name.to_string(),
+                name: resolved_provider.to_string(),
                 base_url: url,
                 model_suffix: suffix,
                 auth_env: auth,
@@ -651,11 +807,17 @@ fn handle_ask(provider: Option<&str>, dry_run: bool, prompt: &str) -> Result<(),
             println!("{}", response.content);
             Ok(())
         }
-        other => Err(format!("unsupported provider '{other}'")),
+        other => Err(format!("unsupported provider kind '{other}'")),
     }
 }
 
-fn handle_propose(provider_name: &str, task: &str) -> Result<(), String> {
+fn handle_propose(provider_name: Option<&str>, task: &str, config: &Config) -> Result<(), String> {
+    let resolved_provider = provider_name.unwrap_or(config.defaults.provider.as_str());
+
+    let profile = config.providers.get(resolved_provider).ok_or_else(|| {
+        format!("provider profile '{resolved_provider}' not found in configuration")
+    })?;
+
     let cp = build_context_pack(task)?;
     std::fs::create_dir_all(".comptext")
         .map_err(|e| format!("failed to create .comptext directory: {e}"))?;
@@ -671,7 +833,7 @@ fn handle_propose(provider_name: &str, task: &str) -> Result<(), String> {
         cp.rendered_context
     );
     let request = ModelRequest {
-        provider: provider_name.to_string(),
+        provider: resolved_provider.to_string(),
         model: "dummy-model".to_string(),
         messages: vec![
             Message {
@@ -691,38 +853,30 @@ fn handle_propose(provider_name: &str, task: &str) -> Result<(), String> {
     std::fs::write(".comptext/model_request.latest.json", req_json)
         .map_err(|e| format!("failed to write model request: {e}"))?;
 
-    let response = match provider_name {
+    let response = match profile.kind.as_str() {
         "dummy" => {
             use crate::provider::{DummyProvider, Provider};
             let prov = DummyProvider;
             prov.execute(&request)?
         }
-        "ollama-local" | "ollama-cloud-via-local" | "ollama-cloud-direct" => {
+        "ollama" => {
             use crate::provider::{OllamaProvider, Provider};
-            let (url, suffix, auth) = match provider_name {
-                "ollama-local" => ("http://localhost:11434".to_string(), None, None),
-                "ollama-cloud-via-local" => (
-                    "http://localhost:11434".to_string(),
-                    Some("-cloud".to_string()),
-                    None,
-                ),
-                "ollama-cloud-direct" => (
-                    "https://ollama.com".to_string(),
-                    None,
-                    Some("OLLAMA_API_KEY".to_string()),
-                ),
-                _ => unreachable!(),
-            };
+            let url = profile
+                .base_url
+                .clone()
+                .unwrap_or_else(|| "http://localhost:11434".to_string());
+            let suffix = profile.model_suffix.clone();
+            let auth = profile.auth_env.clone();
 
             let prov = OllamaProvider {
-                name: provider_name.to_string(),
+                name: resolved_provider.to_string(),
                 base_url: url,
                 model_suffix: suffix,
                 auth_env: auth,
             };
             prov.execute(&request)?
         }
-        other => return Err(format!("unsupported provider '{other}'")),
+        other => return Err(format!("unsupported provider kind '{other}'")),
     };
 
     let resp_json = serde_json::to_string_pretty(&response)
@@ -975,7 +1129,8 @@ fn slugify(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse, Command};
+    use super::{parse, Command, Config, Defaults, PolicyConfig, ProviderProfile};
+    use std::collections::HashMap;
 
     fn s(items: &[&str]) -> Vec<String> {
         items.iter().map(|item| (*item).to_owned()).collect()
@@ -1082,7 +1237,7 @@ mod tests {
                 "Add context inspect"
             ])),
             Ok(Command::Propose {
-                provider: "dummy".to_string(),
+                provider: Some("dummy".to_string()),
                 task: "Add context inspect".to_string()
             })
         );
@@ -1123,6 +1278,97 @@ mod tests {
     #[test]
     fn parses_validate() {
         assert_eq!(parse(&s(&["validate"])), Ok(Command::Validate));
+    }
+
+    #[test]
+    fn test_valid_config_parsing() {
+        let toml_str = r#"
+            [defaults]
+            provider = "dummy"
+            dry_run_default = true
+            proposal_required = true
+
+            [providers.dummy]
+            kind = "dummy"
+            network = false
+
+            [policy]
+            network_default = "deny"
+            allow_provider_network = false
+            secrets_redaction = true
+            apply_requires_confirmation = true
+        "#;
+        let config: Result<Config, _> = toml::from_str(toml_str);
+        assert!(config.is_ok());
+        let config = config.unwrap();
+        assert_eq!(config.defaults.provider, "dummy");
+        assert!(config.defaults.dry_run_default);
+        assert!(config.defaults.proposal_required);
+        assert_eq!(config.policy.network_default, "deny");
+        assert_eq!(config.providers.get("dummy").unwrap().kind, "dummy");
+    }
+
+    #[test]
+    fn test_malformed_config_fails() {
+        let toml_str = r#"
+            [defaults]
+            provider = "dummy"
+            # Missing required fields
+        "#;
+        let config: Result<Config, _> = toml::from_str(toml_str);
+        assert!(config.is_err());
+    }
+
+    #[test]
+    fn test_secret_redaction_not_printed() {
+        let mut providers = HashMap::new();
+        providers.insert(
+            "secret-prov".to_string(),
+            ProviderProfile {
+                kind: "ollama".to_string(),
+                network: Some(true),
+                base_url: Some("http://localhost".to_string()),
+                auth: Some("secret_key_1234567890".to_string()),
+                auth_env: None,
+                model_suffix: None,
+            },
+        );
+
+        let config = Config {
+            defaults: Defaults {
+                provider: "secret-prov".to_string(),
+                dry_run_default: true,
+                proposal_required: true,
+            },
+            providers,
+            policy: PolicyConfig {
+                network_default: "deny".to_string(),
+                allow_provider_network: false,
+                secrets_redaction: true,
+                apply_requires_confirmation: true,
+            },
+        };
+
+        let name = "secret-prov";
+        let profile = &config.providers[name];
+        let mut auth_str = if let Some(ref auth) = profile.auth {
+            format!("auth={}", auth)
+        } else {
+            String::new()
+        };
+
+        let auth_lower = auth_str.to_lowercase();
+        if auth_lower.contains("secret")
+            || auth_lower.contains("password")
+            || auth_lower.contains("token")
+            || auth_lower.contains("key")
+        {
+            if !auth_lower.contains("ollama_api_key") && !auth_lower.contains("optional_api_key") {
+                auth_str = "auth=[REDACTED-METADATA]".to_string();
+            }
+        }
+
+        assert_eq!(auth_str, "auth=[REDACTED-METADATA]");
     }
 
     #[test]

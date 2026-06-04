@@ -7,26 +7,28 @@ proposal_required = true
 kind = "dummy"
 network = false
 
-[providers.ollama_local]
+[providers.ollama-local]
 kind = "ollama"
 base_url = "http://localhost:11434"
 auth = "none"
 
-[providers.ollama_cloud_via_local]
+[providers.ollama-cloud-via-local]
 kind = "ollama"
 base_url = "http://localhost:11434"
 auth = "ollama_signin"
 model_suffix = "-cloud"
 
-[providers.ollama_cloud_direct]
+[providers.ollama-cloud-direct]
 kind = "ollama"
 base_url = "https://ollama.com"
 auth_env = "OLLAMA_API_KEY"
 
-[providers.openai_compatible]
+
+[providers.openai-compatible]
 kind = "openai-compatible"
 base_url = "http://localhost:11434/v1"
 auth_env = "OPTIONAL_API_KEY"
+
 
 [policy]
 network_default = "deny"

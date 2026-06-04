@@ -17,6 +17,10 @@ enum Command {
         dry_run: bool,
         prompt: String,
     },
+    Propose {
+        provider: String,
+        task: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -54,6 +58,26 @@ pub struct ModelRequest {
     pub provider: String,
     pub model: String,
     pub messages: Vec<Message>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct Operation {
+    pub op: String,
+    pub path: String,
+    pub detail: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct Proposal {
+    pub schema_version: String,
+    pub task: String,
+    pub rationale: String,
+    pub preconditions: Vec<String>,
+    pub affected_files: Vec<String>,
+    pub operations: Vec<Operation>,
+    pub validation_commands: Vec<String>,
+    pub rollback_strategy: String,
+    pub risk_notes: String,
 }
 
 pub fn run<I>(args: I) -> i32
@@ -98,6 +122,13 @@ where
             dry_run,
             prompt,
         }) => match handle_ask(provider.as_deref(), dry_run, &prompt) {
+            Ok(_) => 0,
+            Err(e) => {
+                eprintln!("error: {e}");
+                1
+            }
+        },
+        Ok(Command::Propose { provider, task }) => match handle_propose(&provider, &task) {
             Ok(_) => 0,
             Err(e) => {
                 eprintln!("error: {e}");
@@ -208,19 +239,20 @@ fn parse(argv: &[String]) -> Result<Command, String> {
             let mut dry_run = false;
             let mut prompt = String::new();
 
-            let mut i = 1;
-            while i < argv.len() {
-                match argv[i].as_str() {
+            let i = 1;
+            let mut i_mut = i;
+            while i_mut < argv.len() {
+                match argv[i_mut].as_str() {
                     "--dry-run" => {
                         dry_run = true;
-                        i += 1;
+                        i_mut += 1;
                     }
                     "--provider" => {
-                        if i + 1 >= argv.len() {
+                        if i_mut + 1 >= argv.len() {
                             return Err("missing provider name after --provider".to_string());
                         }
-                        provider = Some(argv[i + 1].clone());
-                        i += 2;
+                        provider = Some(argv[i_mut + 1].clone());
+                        i_mut += 2;
                     }
                     other => {
                         if other.starts_with('-') {
@@ -230,7 +262,7 @@ fn parse(argv: &[String]) -> Result<Command, String> {
                             return Err(format!("unexpected argument '{other}' for 'ask'"));
                         }
                         prompt = other.to_string();
-                        i += 1;
+                        i_mut += 1;
                     }
                 }
             }
@@ -248,6 +280,23 @@ fn parse(argv: &[String]) -> Result<Command, String> {
                 dry_run,
                 prompt,
             })
+        }
+        "propose" => {
+            if argv.len() < 4 {
+                return Err("missing arguments for 'propose'. Usage: ctxt propose --provider <provider> \"<task>\"".to_string());
+            }
+            if argv[1] != "--provider" {
+                return Err(format!(
+                    "unexpected option '{}' for 'propose'. Expected '--provider'",
+                    argv[1]
+                ));
+            }
+            let provider = argv[2].clone();
+            let task = argv[3].clone();
+            if argv.len() > 4 {
+                return Err(format!("unexpected argument '{}' for 'propose'", argv[4]));
+            }
+            Ok(Command::Propose { provider, task })
         }
         other => {
             if other.starts_with('-') {
@@ -273,6 +322,7 @@ COMMANDS:\n\
     context inspect     Inspect the workspace context\n\
     context pack        Pack deterministic Context Pack\n\
     ask                 Run query against provider (dry-run supported)\n\
+    propose             Generate proposals for target task (dry-run mode)\n\
 \n\
 SAFETY DEFAULTS:\n\
     network_default=deny\n\
@@ -551,6 +601,132 @@ fn handle_ask(provider: Option<&str>, dry_run: bool, prompt: &str) -> Result<(),
     }
 }
 
+fn handle_propose(provider_name: &str, task: &str) -> Result<(), String> {
+    let cp = build_context_pack(task)?;
+    std::fs::create_dir_all(".comptext")
+        .map_err(|e| format!("failed to create .comptext directory: {e}"))?;
+
+    let cp_json = serde_json::to_string_pretty(&cp)
+        .map_err(|e| format!("failed to serialize context pack: {e}"))?;
+
+    std::fs::write(".comptext/context_pack.latest.json", &cp_json)
+        .map_err(|e| format!("failed to write context pack: {e}"))?;
+
+    let system_prompt = format!(
+        "You are a helpful coding assistant. Here is the repository context:\n\n{}",
+        cp.rendered_context
+    );
+    let request = ModelRequest {
+        provider: provider_name.to_string(),
+        model: "dummy-model".to_string(),
+        messages: vec![
+            Message {
+                role: "system".to_string(),
+                content: system_prompt,
+            },
+            Message {
+                role: "user".to_string(),
+                content: task.to_string(),
+            },
+        ],
+    };
+
+    let req_json = serde_json::to_string_pretty(&request)
+        .map_err(|e| format!("failed to serialize model request: {e}"))?;
+
+    std::fs::write(".comptext/model_request.latest.json", req_json)
+        .map_err(|e| format!("failed to write model request: {e}"))?;
+
+    let response = match provider_name {
+        "dummy" => {
+            use crate::provider::{DummyProvider, Provider};
+            let prov = DummyProvider;
+            prov.execute(&request)?
+        }
+        "ollama-local" | "ollama-cloud-via-local" | "ollama-cloud-direct" => {
+            use crate::provider::{OllamaProvider, Provider};
+            let (url, suffix, auth) = match provider_name {
+                "ollama-local" => ("http://localhost:11434".to_string(), None, None),
+                "ollama-cloud-via-local" => (
+                    "http://localhost:11434".to_string(),
+                    Some("-cloud".to_string()),
+                    None,
+                ),
+                "ollama-cloud-direct" => (
+                    "https://ollama.com".to_string(),
+                    None,
+                    Some("OLLAMA_API_KEY".to_string()),
+                ),
+                _ => unreachable!(),
+            };
+
+            let prov = OllamaProvider {
+                name: provider_name.to_string(),
+                base_url: url,
+                model_suffix: suffix,
+                auth_env: auth,
+            };
+            prov.execute(&request)?
+        }
+        other => return Err(format!("unsupported provider '{other}'")),
+    };
+
+    let resp_json = serde_json::to_string_pretty(&response)
+        .map_err(|e| format!("failed to serialize model response: {e}"))?;
+
+    std::fs::write(".comptext/model_response.latest.json", resp_json)
+        .map_err(|e| format!("failed to write model response: {e}"))?;
+
+    let proposal = Proposal {
+        schema_version: "0.1".to_string(),
+        task: task.to_string(),
+        rationale: format!("Proposed changes based on task: {task}"),
+        preconditions: vec!["cargo check".to_string()],
+        affected_files: vec!["src/cli.rs".to_string()],
+        operations: vec![Operation {
+            op: "patch".to_string(),
+            path: "src/cli.rs".to_string(),
+            detail: format!(
+                "Mock patch generated by dummy provider: \"{}\"",
+                response.content.replace('\n', " ")
+            ),
+        }],
+        validation_commands: vec!["cargo test".to_string()],
+        rollback_strategy: "git restore src/cli.rs".to_string(),
+        risk_notes: "None identified for offline mock run".to_string(),
+    };
+
+    std::fs::create_dir_all("proposals")
+        .map_err(|e| format!("failed to create proposals directory: {e}"))?;
+
+    let prop_json = serde_json::to_string_pretty(&proposal)
+        .map_err(|e| format!("failed to serialize proposal: {e}"))?;
+
+    let slug = slugify(task);
+    let filename = format!("proposals/proposal_{slug}.json");
+    std::fs::write(&filename, &prop_json)
+        .map_err(|e| format!("failed to write proposal file '{filename}': {e}"))?;
+
+    std::fs::write("proposals/proposal.latest.json", &prop_json)
+        .map_err(|e| format!("failed to write proposals/proposal.latest.json: {e}"))?;
+
+    println!("Proposal generated successfully.");
+    println!("Proposal file: {filename}");
+    println!("Latest reference: proposals/proposal.latest.json");
+    Ok(())
+}
+
+fn slugify(text: &str) -> String {
+    text.to_lowercase()
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .collect::<String>()
+        .split('_')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<&str>>()
+        .join("_")
+}
+
 #[cfg(test)]
 mod tests {
     use super::{parse, Command};
@@ -646,6 +822,22 @@ mod tests {
                 provider: Some("ollama-local".to_string()),
                 dry_run: false,
                 prompt: "hello".to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn parses_propose() {
+        assert_eq!(
+            parse(&s(&[
+                "propose",
+                "--provider",
+                "dummy",
+                "Add context inspect"
+            ])),
+            Ok(Command::Propose {
+                provider: "dummy".to_string(),
+                task: "Add context inspect".to_string()
             })
         );
     }

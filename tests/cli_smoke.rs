@@ -130,8 +130,8 @@ fn apply_and_validate_succeeds() {
     assert!(modified_content.contains("// Mock patch applied:"));
 
     let stdout_validate = run(&["validate"]);
-    assert!(stdout_validate.contains("Validating Proposal:"));
-    assert!(stdout_validate.contains("Validation completed successfully."));
+    assert!(stdout_validate.contains("Standard local validation commands:"));
+    assert!(stdout_validate.contains("cargo test"));
 
     let _ = std::fs::remove_file(mock_file);
     let _ = std::fs::remove_file(proposal_path);

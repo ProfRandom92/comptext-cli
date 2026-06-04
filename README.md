@@ -1,16 +1,21 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="CompText CLI — Compress the noise, preserve the proof" width="100%">
+  <img src="assets/banner.svg" alt="CompText — The Operating System for Context" width="100%">
 </p>
 
-# CompText CLI
+# CompText
 
 <p align="center">
   <img src="assets/mark.svg" alt="CompText mark" width="96" height="96">
 </p>
 
 <p align="center">
+  <strong>The Operating System for Context</strong><br>
+  <span>Deterministic context infrastructure for AI systems.</span>
+</p>
+
+<p align="center">
   <strong>Models are providers. Context is the product.</strong><br>
-  <strong>Compress the noise, preserve the proof.</strong>
+  <span>Deterministic. Portable. Verifiable.</span>
 </p>
 
 <p align="center">

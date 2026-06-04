@@ -1,0 +1,12 @@
+{
+  "name": "comptext-cli-antigravity-skills",
+  "description": "Local compatibility manifest for CompText CLI Antigravity Skill Registry.",
+  "version": "0.1.0",
+  "skills": [
+    "ctxt-project-system",
+    "ctxt-context-pack",
+    "ctxt-provider-boundary",
+    "ctxt-security",
+    "ctxt-long-run-autonomy"
+  ]
+}

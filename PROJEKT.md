@@ -19,9 +19,9 @@ CompText CLI is an experimental terminal context client for building determinist
 
 ### Current State
 ```text
-CURRENT_PHASE: 4C
-CURRENT_TASK: Long-Run Autonomy Hardening
-LAST_GREEN_PHASE: 4B
+CURRENT_PHASE: 5
+CURRENT_TASK: Proposal Mode
+LAST_GREEN_PHASE: 4C
 STATUS: active
 ```
 
@@ -78,8 +78,8 @@ git push
 | **Phase 3** | Provider Adapter Layer | Define provider interface and Dummy offline test provider | **COMPLETE** |
 | **Phase 4** | Ollama Local Adapter | Support local Ollama integrations with explicit network boundaries | **COMPLETE** |
 | **Phase 4B** | Skill Registry Normalization | Normalize the local Antigravity skill structure and crystallize autonomy rules | **COMPLETE** |
-| **Phase 4C** | Long-Run Autonomy Hardening | Harden state machine progression rules and git safety boundaries | **ACTIVE** |
-| **Phase 5** | Proposal Mode | Implement `ctxt propose` to output changes as structured proposals | *QUEUED* |
+| **Phase 4C** | Long-Run Autonomy Hardening | Harden state machine progression rules and git safety boundaries | **COMPLETE** |
+| **Phase 5** | Proposal Mode | Implement `ctxt propose` to output changes as structured proposals | **ACTIVE** |
 | **Phase 6** | Apply Gate | Implement `ctxt apply` to confirm/apply changes and run verification | *QUEUED* |
 | **Phase 7** | Provider Config Layer | Support dynamic provider profile switching and configurations | *QUEUED* |
 | **Phase 8** | OpenAI-Compatible Adapter | Implement OpenAI adapter skeleton | *QUEUED* |

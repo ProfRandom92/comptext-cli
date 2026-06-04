@@ -15,7 +15,60 @@ CompText CLI is an experimental terminal context client for building determinist
 
 ---
 
-## Phase Roadmap Status
+## Autonomous State Machine Configuration
+
+### Current State
+```text
+CURRENT_PHASE: 4
+CURRENT_TASK: Ollama Local Adapter with explicit network boundary
+LAST_GREEN_PHASE: 3
+STATUS: active
+```
+
+### Autonomy Contract
+- **Allowed Modifications**: May edit source code (`src/**`), tests (`tests/**`), docs (`docs/**`), skills (`.agent/skills/**`, `.agents/skills/**`), prompts (`prompts/**`), and configurations (`Cargo.toml`, `comptext.example.toml`).
+- **Allowed Commands**: May run local compilation, lint checks, tests, and formatting validation.
+- **Error Remediation**: May automatically modify code to fix local build, format, test, or clippy failures.
+- **Phase Transition**: May commit and push changes after all validation passes for a green phase, and automatically proceed to the next phase queue item.
+
+### Forbidden Rules
+- **No Private Keys / Secrets**: Forbidden to read or parse `.env`, `.env.*`, `.netrc`, `.git-credentials`, private keys (`*.key`, `*.pem`), or credentials.
+- **No Secret Leakage**: Forbidden to print environment variables, dump secrets in stdout/stderr, or write them to logs/reports/artifacts.
+- **No Untrusted Provider Action**: Forbidden to execute real cloud API provider calls during coding/validation phases (unless explicitly approved for live integration runs).
+- **No Destructive/Out-of-Scope Commands**: Forbidden to run shell operations outside the repo root.
+- **No Overwriting Remote History**: Forbidden to run `git push -f` or force push unless explicitly approved.
+- **No Compliance Claims**: Forbidden to claim production/enterprise readiness, certified status, full autonomy, or official SPARK compatibility.
+
+### Stop Conditions
+The agent must halt execution and yield to the user when:
+1. API credentials or auth keys are required to proceed.
+2. Real cloud provider execution / live network calls are needed.
+3. Git merge conflicts arise that cannot be resolved safely.
+4. Validation fails and cannot be resolved with small, safe changes.
+5. Codebase requirements or user requests are contradictory.
+6. Target files outside the repository root need to be accessed or created.
+
+### Global Validation Suite
+The agent must run and satisfy the following validation suite before completing any phase:
+```bash
+cargo fmt --all --check
+cargo check
+cargo test
+cargo clippy -- -D warnings
+```
+
+### Git Progression Rule
+Upon achieving green status for any phase, the agent must execute:
+```bash
+git status
+git add .
+git commit -m "<phase commit message>"
+git push
+```
+
+---
+
+## Phase Queue & Roadmap Status
 
 | Phase | Description | Goal / Scope | Status |
 |---|---|---|---|
@@ -23,32 +76,25 @@ CompText CLI is an experimental terminal context client for building determinist
 | **Phase 1** | CLI Shell Hardening | Hardening argument parsing, input handling, and errors for the base shell commands | **COMPLETE** |
 | **Phase 2** | Context Pack Contract | Implement `ctxt context inspect`, `ctxt context pack --task "..."`, and `ctxt ask --dry-run "..."` | **COMPLETE** |
 | **Phase 3** | Provider Adapter Layer | Define provider interface and Dummy offline test provider | **COMPLETE** |
-| **Phase 4** | Ollama Local Adapter | Support local Ollama integrations with explicit network boundaries | *PLANNED* |
-| **Phase 5** | Proposal Apply Gate | Implement proposal files, approval checks, and validation flow | *PLANNED* |
+| **Phase 4** | Ollama Local Adapter | Support local Ollama integrations with explicit network boundaries | **ACTIVE** |
+| **Phase 5** | Proposal Mode | Implement `ctxt propose` to output changes as structured proposals | *QUEUED* |
+| **Phase 6** | Apply Gate | Implement `ctxt apply` to confirm/apply changes and run verification | *QUEUED* |
+| **Phase 7** | Provider Config Layer | Support dynamic provider profile switching and configurations | *QUEUED* |
+| **Phase 8** | OpenAI-Compatible Adapter | Implement OpenAI adapter skeleton | *QUEUED* |
+| **Phase 9** | Validate and Benchmark | Local validation, dry-runs, and deterministic benchmark flows | *QUEUED* |
 
 ---
 
-## Active Phase Details
-
-### Phase 1: CLI Shell Hardening
-- **Objective**: Harden command parsing in `src/cli.rs`.
-- **Target commands**:
-  - `ctxt --help` (or `-h`)
-  - `ctxt doctor`
-  - `ctxt version` (or `-V` / `version`)
-  - `ctxt providers list`
-- **Validation**:
-  - `cargo fmt --all --check`
-  - `cargo check`
-  - `cargo test`
-  - `cargo clippy -- -D warnings`
-
-### Phase 2: Context Pack Contract
-- **Objective**: Build deterministic JSON Context Packs.
-- **Target commands**:
-  - `ctxt context inspect`
-  - `ctxt context pack --task "<TASK>"`
-  - `ctxt ask --dry-run "<PROMPT>"`
-- **Artifacts**:
-  - `.comptext/context_pack.latest.json`
-  - `.comptext/model_request.latest.json`
+## Standard Phase Return Format
+All phase transitions must output their status report using the following schema:
+```text
+PHASE: <Phase Number and Title>
+STATUS: <success | blocked>
+FILES_CHANGED: <list of changed files>
+COMMANDS_RUN: <list of commands executed>
+VALIDATION: <validation output summary>
+ARTIFACTS: <list of generated artifacts>
+GIT: <git commit and push hash/result>
+RISKS: <analysis of potential risks>
+NEXT: <next action or phase name>
+```

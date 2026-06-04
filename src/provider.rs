@@ -21,7 +21,6 @@ impl Provider for DummyProvider {
     }
 
     fn execute(&self, request: &ModelRequest) -> Result<ModelResponse, String> {
-        // Count how many files are formatted in the system message context
         let file_count = if let Some(sys_msg) = request.messages.iter().find(|m| m.role == "system")
         {
             sys_msg.content.matches("=== FILE: ").count()
@@ -48,5 +47,132 @@ impl Provider for DummyProvider {
             model: "dummy-model".to_string(),
             content,
         })
+    }
+}
+
+pub struct OllamaProvider {
+    pub name: String,
+    pub base_url: String,
+    pub model_suffix: Option<String>,
+    pub auth_env: Option<String>,
+}
+
+impl Provider for OllamaProvider {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn execute(&self, request: &ModelRequest) -> Result<ModelResponse, String> {
+        let base_model = if request.model == "dummy-model" {
+            "llama3"
+        } else {
+            &request.model
+        };
+
+        let final_model = if let Some(ref suffix) = self.model_suffix {
+            format!("{}{}", base_model, suffix)
+        } else {
+            base_model.to_string()
+        };
+
+        let payload = serde_json::json!({
+            "model": final_model,
+            "messages": request.messages,
+            "stream": false
+        });
+
+        let endpoint = format!("{}/api/chat", self.base_url.trim_end_matches('/'));
+        let mut req = ureq::post(&endpoint);
+
+        if let Some(ref env_var) = self.auth_env {
+            match std::env::var(env_var) {
+                Ok(val) => {
+                    req = req.set("Authorization", &format!("Bearer {val}"));
+                }
+                Err(_) => {
+                    return Err(format!(
+                        "Authorization environment variable '{}' is not set.",
+                        env_var
+                    ));
+                }
+            }
+        }
+
+        let payload_str = serde_json::to_string(&payload)
+            .map_err(|e| format!("failed to serialize Ollama payload: {e}"))?;
+
+        let response = req
+            .set("Content-Type", "application/json")
+            .send_string(&payload_str)
+            .map_err(|e| format!("HTTP request to Ollama failed: {e}"))?;
+
+        let resp_str = response
+            .into_string()
+            .map_err(|e| format!("failed to read Ollama response string: {e}"))?;
+
+        let resp_body: serde_json::Value = serde_json::from_str(&resp_str)
+            .map_err(|e| format!("failed to parse Ollama JSON response: {e}"))?;
+
+        let assistant_content = resp_body
+            .get("message")
+            .and_then(|m| m.get("content"))
+            .and_then(|c| c.as_str())
+            .ok_or_else(|| "Ollama response missing assistant message content".to_string())?;
+
+        Ok(ModelResponse {
+            provider: self.name.clone(),
+            model: final_model,
+            content: assistant_content.to_string(),
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::Message;
+
+    #[test]
+    fn test_ollama_missing_auth_env() {
+        let provider = OllamaProvider {
+            name: "ollama-cloud-direct".to_string(),
+            base_url: "https://ollama.com".to_string(),
+            model_suffix: None,
+            auth_env: Some("NON_EXISTENT_ENV_VAR_TEST".to_string()),
+        };
+        let request = ModelRequest {
+            provider: "ollama-cloud-direct".to_string(),
+            model: "llama3".to_string(),
+            messages: vec![Message {
+                role: "user".to_string(),
+                content: "hello".to_string(),
+            }],
+        };
+        let res = provider.execute(&request);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("Authorization environment variable 'NON_EXISTENT_ENV_VAR_TEST' is not set"));
+    }
+
+    #[test]
+    fn test_ollama_local_offline_error() {
+        let provider = OllamaProvider {
+            name: "ollama-local".to_string(),
+            base_url: "http://127.0.0.1:9999".to_string(),
+            model_suffix: None,
+            auth_env: None,
+        };
+        let request = ModelRequest {
+            provider: "ollama-local".to_string(),
+            model: "llama3".to_string(),
+            messages: vec![Message {
+                role: "user".to_string(),
+                content: "hello".to_string(),
+            }],
+        };
+        let res = provider.execute(&request);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("HTTP request to Ollama failed"));
     }
 }

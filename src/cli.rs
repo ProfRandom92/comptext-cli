@@ -511,6 +511,42 @@ fn handle_ask(provider: Option<&str>, dry_run: bool, prompt: &str) -> Result<(),
             println!("{}", response.content);
             Ok(())
         }
+        "ollama-local" | "ollama-cloud-via-local" | "ollama-cloud-direct" => {
+            use crate::provider::{OllamaProvider, Provider};
+            let (url, suffix, auth) = match p_name {
+                "ollama-local" => ("http://localhost:11434".to_string(), None, None),
+                "ollama-cloud-via-local" => (
+                    "http://localhost:11434".to_string(),
+                    Some("-cloud".to_string()),
+                    None,
+                ),
+                "ollama-cloud-direct" => (
+                    "https://ollama.com".to_string(),
+                    None,
+                    Some("OLLAMA_API_KEY".to_string()),
+                ),
+                _ => unreachable!(),
+            };
+
+            let prov = OllamaProvider {
+                name: p_name.to_string(),
+                base_url: url,
+                model_suffix: suffix,
+                auth_env: auth,
+            };
+
+            let response = prov.execute(&request)?;
+
+            let resp_json = serde_json::to_string_pretty(&response)
+                .map_err(|e| format!("failed to serialize model response: {e}"))?;
+
+            std::fs::write(".comptext/model_response.latest.json", resp_json)
+                .map_err(|e| format!("failed to write model response: {e}"))?;
+
+            println!("Response from {} provider:", prov.name());
+            println!("{}", response.content);
+            Ok(())
+        }
         other => Err(format!("unsupported provider '{other}'")),
     }
 }
@@ -598,6 +634,18 @@ mod tests {
                 provider: Some("dummy".to_string()),
                 dry_run: false,
                 prompt: "How do I test this repo?".to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn parses_ask_provider_ollama() {
+        assert_eq!(
+            parse(&s(&["ask", "--provider", "ollama-local", "hello"])),
+            Ok(Command::Ask {
+                provider: Some("ollama-local".to_string()),
+                dry_run: false,
+                prompt: "hello".to_string()
             })
         );
     }

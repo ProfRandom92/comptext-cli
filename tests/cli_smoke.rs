@@ -44,3 +44,18 @@ fn ask_dummy_provider_succeeds() {
     let response_content = std::fs::read_to_string(response_path).unwrap();
     assert!(response_content.contains("\"provider\": \"dummy\""));
 }
+
+#[test]
+fn ask_ollama_provider_fails_gracefully_offline() {
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_ctxt"))
+        .args(&["ask", "--provider", "ollama-local", "hello"])
+        .output()
+        .expect("ctxt binary should run");
+
+    assert!(
+        !output.status.success(),
+        "command should fail because local Ollama is offline"
+    );
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be UTF-8");
+    assert!(stderr.contains("error: HTTP request to Ollama failed"));
+}

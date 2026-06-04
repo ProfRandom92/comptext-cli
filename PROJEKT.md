@@ -19,9 +19,9 @@ CompText CLI is an experimental terminal context client for building determinist
 
 ### Current State
 ```text
-CURRENT_PHASE: 4
-CURRENT_TASK: Ollama Local Adapter with explicit network boundary
-LAST_GREEN_PHASE: 3
+CURRENT_PHASE: 5
+CURRENT_TASK: Proposal Mode
+LAST_GREEN_PHASE: 4
 STATUS: active
 ```
 
@@ -76,8 +76,8 @@ git push
 | **Phase 1** | CLI Shell Hardening | Hardening argument parsing, input handling, and errors for the base shell commands | **COMPLETE** |
 | **Phase 2** | Context Pack Contract | Implement `ctxt context inspect`, `ctxt context pack --task "..."`, and `ctxt ask --dry-run "..."` | **COMPLETE** |
 | **Phase 3** | Provider Adapter Layer | Define provider interface and Dummy offline test provider | **COMPLETE** |
-| **Phase 4** | Ollama Local Adapter | Support local Ollama integrations with explicit network boundaries | **ACTIVE** |
-| **Phase 5** | Proposal Mode | Implement `ctxt propose` to output changes as structured proposals | *QUEUED* |
+| **Phase 4** | Ollama Local Adapter | Support local Ollama integrations with explicit network boundaries | **COMPLETE** |
+| **Phase 5** | Proposal Mode | Implement `ctxt propose` to output changes as structured proposals | **ACTIVE** |
 | **Phase 6** | Apply Gate | Implement `ctxt apply` to confirm/apply changes and run verification | *QUEUED* |
 | **Phase 7** | Provider Config Layer | Support dynamic provider profile switching and configurations | *QUEUED* |
 | **Phase 8** | OpenAI-Compatible Adapter | Implement OpenAI adapter skeleton | *QUEUED* |

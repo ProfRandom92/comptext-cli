@@ -8,7 +8,7 @@ CompText CLI is an experimental, local-first terminal workflow for building dete
 
 It is not a blind autonomous coding agent.
 
-It is a proof-preserving context compression and validation workflow for software projects.
+It is a proof-preserving context compression, proposal, apply, validation, and benchmark workflow for software projects.
 
 ---
 
@@ -24,7 +24,7 @@ flowchart TD
     D --> E{Provider Intent?}
     E -->|dry-run| F[Model Request Artifact]
     E -->|dummy| G[Deterministic Dummy Provider]
-    E -->|local/cloud provider| H[Provider Boundary]
+    E -->|local or configured provider| H[Provider Boundary]
     H --> I[Untrusted Provider Response]
     G --> I
     F --> J[Reviewable Evidence]
@@ -33,7 +33,7 @@ flowchart TD
     L -->|approved| M[Apply Gate]
     L -->|rejected| N[Stop]
     M --> O[Local Validation]
-    O --> P[Report / Evidence]
+    O --> P[Benchmark / Report / Evidence]
 ```
 
 The goal is not to send more context to a model.
@@ -50,23 +50,27 @@ flowchart LR
         R[Repository Files]
         A[AGENTS.md]
         P[PROJEKT.md]
-        D[docs/]
+        D[docs]
     end
 
     subgraph CompText[ctxt CLI]
         CI[context inspect]
         CP[context pack]
         PG[policy gate]
+        ASK[ask]
         PA[provider adapter]
         PR[propose]
         AG[apply gate]
         VA[validate]
+        BM[benchmark]
     end
 
     subgraph Artifacts[Proof Artifacts]
         CPK[.comptext/context_pack.latest.json]
         MR[.comptext/model_request.latest.json]
         MS[.comptext/model_response.latest.json]
+        ORQ[.comptext/openai_request.latest.json]
+        BA[.comptext/benchmark.latest.json]
         PP[proposals/*.json]
         RP[reports/phase_*_status.md]
     end
@@ -84,12 +88,14 @@ flowchart LR
     D --> CI
     CI --> CP
     CP --> PG
-    PG --> PA
+    PG --> ASK
+    ASK --> PA
     PA --> DU
     PA --> OL
     PA --> OC
     PA --> OA
     PA --> MS
+    OA --> ORQ
     CP --> CPK
     PG --> MR
     MS --> PR
@@ -97,75 +103,7 @@ flowchart LR
     PP --> AG
     AG --> VA
     VA --> RP
-```
-
----
-
-## Core Principles
-
-- Deterministic Context Packs before provider calls
-- Dry-run before network
-- Proposal before apply
-- Apply only through policy gate
-- Validate before claiming success
-- Provider output is untrusted
-- Model output is untrusted
-- Tool output is untrusted
-- Secrets never enter logs, reports, context packs, proposals, snapshots, or stdout/stderr
-- Runtime artifacts stay out of source control unless explicitly approved
-
----
-
-## Trust Boundaries
-
-CompText separates context, provider calls, proposals, and mutation into explicit trust zones.
-
-```mermaid
-flowchart TD
-    subgraph Trusted[Trusted Project Inputs]
-        AG[AGENTS.md]
-        PJ[PROJEKT.md]
-        SRC[Source files]
-        DOC[Docs]
-    end
-
-    subgraph Controlled[Controlled CompText Artifacts]
-        CP[Context Pack]
-        REQ[Provider Request Artifact]
-        PROP[Proposal Artifact]
-        REP[Validation Report]
-    end
-
-    subgraph Untrusted[Untrusted Inputs]
-        MOD[Model Output]
-        PROV[Provider Response]
-        TOOL[Tool Output]
-        MCP[MCP Server Output]
-        PATCH[Generated Patch]
-    end
-
-    subgraph Gates[Policy Gates]
-        PG[Policy Gate]
-        HR[Human Review]
-        AP[Apply Gate]
-        VAL[Local Validation]
-    end
-
-    Trusted --> CP
-    CP --> PG
-    PG --> REQ
-    REQ --> PROV
-    PROV --> PROP
-    MOD --> PROP
-    TOOL --> PROP
-    MCP --> PROP
-    PATCH --> PROP
-    PROP --> HR
-    HR --> AP
-    AP --> VAL
-    VAL --> REP
-
-    Untrusted -.must be reviewed.-> HR
+    BM --> BA
 ```
 
 ---
@@ -175,19 +113,19 @@ flowchart TD
 ```text
 Project: CompText CLI
 Binary: ctxt
-Current phase: Phase 5
-Current task: Proposal Mode
-Last green phase: Phase 4C
-Status: active
+Current phase: Phase 9
+Current task: Validate and Benchmark
+Last green phase: Phase 9
+Status: complete
 ```
 
 ```mermaid
 stateDiagram-v2
     [*] --> Phase0
-    Phase0: Repo Genesis & Bootstrap
+    Phase0: Repo Genesis and Bootstrap
     Phase1: CLI Shell Hardening
     Phase2: Context Pack Contract
-    Phase3: Provider Adapter Layer / Dummy Provider
+    Phase3: Provider Adapter Layer and Dummy Provider
     Phase4: Ollama Local Adapter
     Phase4B: Skill Registry Normalization
     Phase4C: Long-Run Autonomy Hardening
@@ -196,6 +134,10 @@ stateDiagram-v2
     Phase7: Provider Config Layer
     Phase8: OpenAI-Compatible Adapter
     Phase9: Validate and Benchmark
+    Phase10: MCP Provider Boundary
+    Phase11: Hook / Workflow Governance
+    Phase12: Token Compression Intercepts
+    Phase13: Skill Bundle Registry
 
     Phase0 --> Phase1: complete
     Phase1 --> Phase2: complete
@@ -203,11 +145,15 @@ stateDiagram-v2
     Phase3 --> Phase4: complete
     Phase4 --> Phase4B: complete
     Phase4B --> Phase4C: complete
-    Phase4C --> Phase5: active
-    Phase5 --> Phase6: queued
-    Phase6 --> Phase7: queued
-    Phase7 --> Phase8: queued
-    Phase8 --> Phase9: queued
+    Phase4C --> Phase5: complete
+    Phase5 --> Phase6: complete
+    Phase6 --> Phase7: complete
+    Phase7 --> Phase8: complete
+    Phase8 --> Phase9: complete
+    Phase9 --> Phase10: next
+    Phase10 --> Phase11: queued
+    Phase11 --> Phase12: queued
+    Phase12 --> Phase13: queued
 ```
 
 Completed:
@@ -220,26 +166,25 @@ Phase 3   Provider Adapter Layer / Dummy Provider
 Phase 4   Ollama Local Adapter
 Phase 4B  Skill Registry Normalization
 Phase 4C  Long-Run Autonomy Hardening
-```
-
-Active:
-
-```text
 Phase 5   Proposal Mode
-```
-
-Queued:
-
-```text
 Phase 6   Apply Gate
 Phase 7   Provider Config Layer
 Phase 8   OpenAI-Compatible Adapter
 Phase 9   Validate and Benchmark
 ```
 
+Next recommended phases:
+
+```text
+Phase 10  MCP Provider Boundary
+Phase 11  Hook / Workflow Governance
+Phase 12  Token Compression Intercepts
+Phase 13  Skill Bundle Registry
+```
+
 ---
 
-## Command Overview
+## Implemented Commands
 
 ```bash
 ctxt --help
@@ -253,15 +198,17 @@ ctxt context pack --task "Explain this repository"
 
 ctxt ask --dry-run "What is the next safe step?"
 ctxt ask --provider dummy "How should I test this repo?"
-ctxt ask --provider ollama-local --model qwen3:8b "Review this context"
+ctxt ask --provider ollama-local "Review this context"
+ctxt ask --provider openai-compatible --dry-run "Prepare an OpenAI-compatible request artifact"
 
 ctxt propose --provider dummy "Add context inspect"
 
-ctxt apply proposals/...
+ctxt apply proposals/proposal.latest.json --yes
 ctxt validate
+ctxt benchmark --provider dummy "How should I test this repo?"
 ```
 
-Not every command may be available in the current phase. The roadmap is intentionally phase-gated.
+The workflow is still intentionally phase-gated: live network/provider execution remains controlled by configuration and policy.
 
 ---
 
@@ -275,19 +222,23 @@ sequenceDiagram
     participant Provider
     participant Proposal
     participant Gate as Apply Gate
-    participant Tests as Local Validation
+    participant Validate
+    participant Benchmark
 
     User->>CLI: ctxt context inspect
     CLI->>CP: collect bounded project context
     User->>CLI: ctxt ask --dry-run "..."
     CLI->>CP: render provider request artifact
     User->>CLI: ctxt propose --provider dummy "..."
-    CLI->>Provider: send bounded request
+    CLI->>Provider: send bounded offline request
     Provider-->>CLI: untrusted response
     CLI->>Proposal: write reviewable proposal JSON
-    User->>Gate: approve selected proposal
-    Gate->>Tests: run validation
-    Tests-->>User: report / evidence
+    User->>Gate: ctxt apply proposals/proposal.latest.json --yes
+    Gate->>Validate: run proposal validation commands
+    User->>CLI: ctxt validate
+    CLI-->>User: print standard validation suite
+    User->>Benchmark: ctxt benchmark --provider dummy "..."
+    Benchmark-->>User: write benchmark evidence artifact
 ```
 
 ### 1. Inspect the repository context
@@ -302,21 +253,19 @@ ctxt context inspect
 ctxt context pack --task "Add proposal generation mode"
 ```
 
-This writes a runtime artifact under:
+This writes:
 
 ```text
 .comptext/context_pack.latest.json
 ```
 
-### 3. Dry-run the provider request
+### 3. Dry-run a provider request
 
 ```bash
 ctxt ask --dry-run "What is the next safe implementation step?"
 ```
 
-Dry-run mode does not call a provider.
-
-It writes an inspectable request artifact under:
+Dry-run mode does not call a provider. It writes:
 
 ```text
 .comptext/model_request.latest.json
@@ -336,33 +285,60 @@ The dummy provider is deterministic, offline, and suitable for CI-style checks.
 ctxt propose --provider dummy "Add context inspect"
 ```
 
-Proposal mode writes a reviewable artifact under:
+This writes:
 
 ```text
-proposals/
+proposals/proposal_<task_slug>.json
+proposals/proposal.latest.json
 ```
 
-It must not apply changes.
+### 6. Apply a reviewed proposal
+
+```bash
+ctxt apply proposals/proposal.latest.json --yes
+```
+
+Apply checks allowed paths and runs the proposal validation commands after applying operations.
+
+### 7. Print validation commands
+
+```bash
+ctxt validate
+```
+
+### 8. Run an offline deterministic benchmark
+
+```bash
+ctxt benchmark --provider dummy "How should I test this repo?"
+```
+
+This writes:
+
+```text
+.comptext/benchmark.latest.json
+```
 
 ---
 
 ## Runtime Artifacts
 
-CompText produces artifacts that help preserve evidence without trusting logs alone.
+CompText produces artifacts that preserve evidence without trusting conversation logs alone.
 
 ```mermaid
 flowchart TD
     CTX[ctxt command] --> CP[.comptext/context_pack.latest.json]
     CTX --> MR[.comptext/model_request.latest.json]
     CTX --> MS[.comptext/model_response.latest.json]
-    CTX --> PR[.comptext/provider_request.latest.json]
+    CTX --> ORQ[.comptext/openai_request.latest.json]
+    CTX --> BA[.comptext/benchmark.latest.json]
     CTX --> PP[proposals/*.json]
     CTX --> RP[reports/phase_*_status.md]
 
     CP --> Proof[Proof Trail]
     MR --> Proof
     MS --> Proof
-    PR --> Proof
+    ORQ --> Proof
+    BA --> Proof
     PP --> Proof
     RP --> Proof
 ```
@@ -373,7 +349,8 @@ Common runtime paths:
 .comptext/context_pack.latest.json
 .comptext/model_request.latest.json
 .comptext/model_response.latest.json
-.comptext/provider_request.latest.json
+.comptext/openai_request.latest.json
+.comptext/benchmark.latest.json
 proposals/
 reports/
 ```
@@ -404,7 +381,7 @@ Minimal shape:
   "allowed_write_paths": [],
   "forbidden_actions": [],
   "validation_commands": [],
-  "provider": null,
+  "provider": "dummy",
   "rendered_context": "...",
   "policy": {
     "secrets_redacted": true,
@@ -418,11 +395,11 @@ The Context Pack is the boundary between raw repository noise and model-facing c
 
 ---
 
-## Proposal Artifacts
+## Proposal and Apply Flow
 
 A proposal is an inspectable artifact.
 
-It is not an applied patch.
+It is not automatically applied.
 
 ```mermaid
 flowchart LR
@@ -432,52 +409,50 @@ flowchart LR
     D --> E{Review Required}
     E -->|approve| F[Apply Gate]
     E -->|reject| G[No Mutation]
-    F --> H[Validation Commands]
-    H --> I[Phase Report]
+    F --> H[Allowed Path Check]
+    H --> I[Apply Operations]
+    I --> J[Validation Commands]
+    J --> K[Phase Report]
 ```
 
-Recommended proposal shape:
+Current proposal shape:
 
 ```json
 {
   "schema_version": "0.1",
-  "kind": "comptext.proposal",
-  "created_at": "2026-06-04T00:00:00Z",
   "task": "...",
-  "phase": "Phase 5",
-  "provider": {
-    "name": "dummy",
-    "network": false,
-    "auth": "none"
-  },
-  "trust": {
-    "provider_output_trusted": false,
-    "tool_output_trusted": false,
-    "requires_human_review": true
-  },
-  "context": {
-    "context_pack_path": ".comptext/context_pack.latest.json",
-    "context_pack_hash": "sha256:..."
-  },
-  "policy": {
-    "allowed_write_paths": [],
-    "forbidden_actions": [],
-    "secrets_redacted": true,
-    "network_allowed": false,
-    "apply_requires_approval": true
-  },
-  "proposed_changes": [],
-  "validation_commands": [],
-  "risks": [],
-  "status": "review_required"
+  "rationale": "...",
+  "preconditions": ["cargo check"],
+  "affected_files": ["src/cli.rs"],
+  "operations": [
+    {
+      "op": "patch",
+      "path": "src/cli.rs",
+      "detail": "..."
+    }
+  ],
+  "validation_commands": ["cargo test"],
+  "rollback_strategy": "git restore src/cli.rs",
+  "risk_notes": "..."
 }
+```
+
+Apply gate behavior:
+
+```text
+- reads an explicit proposal file or proposals/proposal.latest.json
+- validates operation paths against allowed write rules
+- asks for confirmation unless --yes is supplied
+- applies supported operations
+- runs proposal validation commands
+- fails closed on policy or validation errors
 ```
 
 ---
 
-## Providers
+## Providers and Configuration
 
-Planned and supported provider families:
+Configured provider families:
 
 ```text
 dummy
@@ -485,27 +460,60 @@ ollama-local
 ollama-cloud-via-local
 ollama-cloud-direct
 openai-compatible
-future-openai
-future-gemini
-custom
 ```
 
 ```mermaid
 flowchart TD
-    PA[Provider Adapter] --> DU[dummy]
+    CFG[comptext.toml or comptext.example.toml] --> DEF[defaults]
+    CFG --> POL[policy]
+    CFG --> PA[Provider Profiles]
+
+    PA --> DU[dummy]
     PA --> OL[ollama-local]
     PA --> OVL[ollama-cloud-via-local]
     PA --> OCD[ollama-cloud-direct]
     PA --> OAI[openai-compatible]
-    PA --> FO[future-openai]
-    PA --> FG[future-gemini]
-    PA --> CU[custom]
 
-    DU --> OFF[offline / deterministic]
+    DU --> OFF[offline deterministic]
     OL --> LOC[localhost boundary]
     OVL --> MIX[local API plus cloud model boundary]
     OCD --> NET[remote network boundary]
-    OAI --> API[normalized API boundary]
+    OAI --> API[normalized chat completions style artifact]
+
+    POL --> ND[network_default = deny]
+    POL --> AN[allow_provider_network = false]
+    POL --> SR[secrets_redaction = true]
+```
+
+Example provider config:
+
+```toml
+[defaults]
+provider = "dummy"
+dry_run_default = true
+proposal_required = true
+
+[providers.dummy]
+kind = "dummy"
+network = false
+
+[providers.ollama-local]
+kind = "ollama"
+base_url = "http://localhost:11434"
+auth = "none"
+
+[providers.openai-compatible]
+kind = "openai-compatible"
+base_url = "http://localhost:11434/v1"
+model = "gpt-4o"
+auth_env = "OPTIONAL_API_KEY"
+network = false
+
+[policy]
+network_default = "deny"
+allow_provider_network = false
+secrets_redaction = true
+apply_requires_confirmation = true
 ```
 
 ### Dummy Provider
@@ -521,14 +529,66 @@ ctxt ask --provider dummy "Explain the next safe step"
 Local Ollama runs through the local API boundary.
 
 ```bash
-ctxt ask --provider ollama-local --model qwen3:8b "Review this context"
+ctxt ask --provider ollama-local "Review this context"
 ```
 
-### Ollama Cloud / Direct Cloud
+### OpenAI-Compatible Adapter
+
+The OpenAI-compatible adapter can produce normalized request artifacts and is gated by provider config and network policy.
+
+```bash
+ctxt ask --provider openai-compatible --dry-run "Prepare request artifact"
+```
+
+### Cloud / Direct Cloud
 
 Cloud usage is treated as an explicit network boundary.
 
 Secrets such as `OLLAMA_API_KEY` must never be printed, logged, serialized into artifacts, or included in context packs.
+
+---
+
+## Validate and Benchmark
+
+```mermaid
+flowchart TD
+    V[ctxt validate] --> VC[Print validation suite]
+    VC --> FMT[cargo fmt --all --check]
+    VC --> CHECK[cargo check]
+    VC --> TEST[cargo test]
+    VC --> CLIPPY[cargo clippy -- -D warnings]
+
+    B[ctxt benchmark --provider dummy task] --> BC[Build Context Pack]
+    BC --> BR[Build Model Request]
+    BR --> BD[Run Dummy Provider]
+    BD --> BS[Write Model Response]
+    BS --> BA[Write .comptext/benchmark.latest.json]
+```
+
+`ctxt validate` prints the standard local validation suite:
+
+```bash
+cargo fmt --all --check
+cargo check
+cargo test
+cargo clippy -- -D warnings
+```
+
+`ctxt benchmark` currently supports the offline `dummy` provider and fails closed for non-dummy providers in this phase.
+
+Phase 9 evidence records:
+
+```text
+- cargo fmt --all --check
+- cargo check
+- cargo test
+- cargo clippy -- -D warnings
+- cargo run --bin ctxt -- validate
+- cargo run --bin ctxt -- benchmark --provider dummy "How should I test this repo?"
+- all 35 tests passed
+- network: offline-only
+- secrets: redacted
+```
 
 ---
 
@@ -564,37 +624,6 @@ CompText does not claim to be production-ready, enterprise-ready, compliance-rea
 
 ---
 
-## Validation
-
-Standard Rust validation:
-
-```bash
-cargo fmt --all --check
-cargo check
-cargo test
-cargo clippy -- -D warnings
-```
-
-Useful CLI smoke tests:
-
-```bash
-cargo run --bin ctxt -- --help
-cargo run --bin ctxt -- doctor
-cargo run --bin ctxt -- providers list
-cargo run --bin ctxt -- version
-cargo run --bin ctxt -- context inspect
-cargo run --bin ctxt -- ask --dry-run "What is the next safe step?"
-cargo run --bin ctxt -- ask --provider dummy "How should I test this repo?"
-```
-
-Phase 5 validation:
-
-```bash
-cargo run --bin ctxt -- propose --provider dummy "Add context inspect"
-```
-
----
-
 ## Project Files
 
 Important files:
@@ -602,12 +631,14 @@ Important files:
 ```text
 AGENTS.md
 PROJEKT.md
+comptext.example.toml
 docs/ARCHITECTURE.md
 docs/CONTEXT_PACK_CONTRACT.md
 docs/PROVIDER_ADAPTERS.md
 docs/SECURITY_MODEL.md
 docs/AGENT_OPERATING_MODEL.md
 docs/LONG_RUN_AUTONOMY.md
+docs/VALIDATE_BENCHMARK.md
 reports/
 .comptext/
 proposals/
@@ -619,12 +650,13 @@ proposals/
 flowchart TD
     AG[AGENTS.md] --> GOV[Governance]
     PJ[PROJEKT.md] --> STATE[State Machine]
-    DOC[docs/] --> SPEC[Contracts / Architecture]
-    SK1[.agent/skills/] --> SK[Agent Skills]
-    SK2[.agents/skills/] --> SK
-    CMP[.comptext/] --> RUN[Runtime Artifacts]
-    PROP[proposals/] --> REV[Review Artifacts]
-    REP[reports/] --> EVD[Evidence]
+    CFG[comptext.example.toml] --> CONF[Provider and Policy Config]
+    DOC[docs] --> SPEC[Contracts and Architecture]
+    SK1[.agent/skills] --> SK[Agent Skills]
+    SK2[.agents/skills] --> SK
+    CMP[.comptext] --> RUN[Runtime Artifacts]
+    PROP[proposals] --> REV[Review Artifacts]
+    REP[reports] --> EVD[Evidence]
 ```
 
 `PROJEKT.md` is the project state machine.
@@ -643,26 +675,40 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    P5[Phase 5<br/>Proposal Mode] --> P6[Phase 6<br/>Apply Gate]
-    P6 --> P7[Phase 7<br/>Provider Config Layer]
-    P7 --> P8[Phase 8<br/>OpenAI-Compatible Adapter]
-    P8 --> P9[Phase 9<br/>Validate and Benchmark]
-    P9 --> P10[Phase 10<br/>MCP Provider Boundary]
-    P10 --> P11[Phase 11<br/>Hook / Workflow Governance]
-    P11 --> P12[Phase 12<br/>Token Compression Intercepts]
-    P12 --> P13[Phase 13<br/>Skill Bundle Registry]
+    P0[Phase 0 Complete] --> P1[Phase 1 Complete]
+    P1 --> P2[Phase 2 Complete]
+    P2 --> P3[Phase 3 Complete]
+    P3 --> P4[Phase 4 Complete]
+    P4 --> P4B[Phase 4B Complete]
+    P4B --> P4C[Phase 4C Complete]
+    P4C --> P5[Phase 5 Complete]
+    P5 --> P6[Phase 6 Complete]
+    P6 --> P7[Phase 7 Complete]
+    P7 --> P8[Phase 8 Complete]
+    P8 --> P9[Phase 9 Complete]
+    P9 --> P10[Phase 10 Next MCP Boundary]
+    P10 --> P11[Phase 11 Hook Governance]
+    P11 --> P12[Phase 12 Token Compression]
+    P12 --> P13[Phase 13 Skill Bundle Registry]
 ```
 
 ```text
-Phase 5   Proposal Mode
-Phase 6   Apply Gate
-Phase 7   Provider Config Layer
-Phase 8   OpenAI-Compatible Adapter
-Phase 9   Validate and Benchmark
-Phase 10  MCP Provider Boundary
-Phase 11  Hook / Workflow Governance
-Phase 12  Token Compression Intercepts
-Phase 13  Skill Bundle Registry
+Phase 0   Repo Genesis & Bootstrap              COMPLETE
+Phase 1   CLI Shell Hardening                    COMPLETE
+Phase 2   Context Pack Contract                  COMPLETE
+Phase 3   Provider Adapter Layer / Dummy         COMPLETE
+Phase 4   Ollama Local Adapter                   COMPLETE
+Phase 4B  Skill Registry Normalization           COMPLETE
+Phase 4C  Long-Run Autonomy Hardening            COMPLETE
+Phase 5   Proposal Mode                          COMPLETE
+Phase 6   Apply Gate                             COMPLETE
+Phase 7   Provider Config Layer                  COMPLETE
+Phase 8   OpenAI-Compatible Adapter              COMPLETE
+Phase 9   Validate and Benchmark                 COMPLETE
+Phase 10  MCP Provider Boundary                  NEXT
+Phase 11  Hook / Workflow Governance             QUEUED
+Phase 12  Token Compression Intercepts           QUEUED
+Phase 13  Skill Bundle Registry                  QUEUED
 ```
 
 ---
@@ -732,7 +778,7 @@ flowchart TD
 
 ### comptext-cli
 
-Product CLI, terminal UX, provider adapters, Context Packs, proposals, apply gate, validation workflow.
+Product CLI, terminal UX, provider adapters, Context Packs, proposals, apply gate, validation workflow, and offline benchmark artifacts.
 
 ### comptext-sparkctl
 

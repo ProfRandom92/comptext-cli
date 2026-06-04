@@ -21,6 +21,11 @@ enum Command {
         provider: String,
         task: String,
     },
+    Apply {
+        proposal_path: Option<String>,
+        yes: bool,
+    },
+    Validate,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -129,6 +134,22 @@ where
             }
         },
         Ok(Command::Propose { provider, task }) => match handle_propose(&provider, &task) {
+            Ok(_) => 0,
+            Err(e) => {
+                eprintln!("error: {e}");
+                1
+            }
+        },
+        Ok(Command::Apply { proposal_path, yes }) => {
+            match handle_apply(proposal_path.as_deref(), yes) {
+                Ok(_) => 0,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    1
+                }
+            }
+        }
+        Ok(Command::Validate) => match handle_validate() {
             Ok(_) => 0,
             Err(e) => {
                 eprintln!("error: {e}");
@@ -298,6 +319,37 @@ fn parse(argv: &[String]) -> Result<Command, String> {
             }
             Ok(Command::Propose { provider, task })
         }
+        "apply" => {
+            let mut proposal_path = None;
+            let mut yes = false;
+
+            let mut i = 1;
+            while i < argv.len() {
+                match argv[i].as_str() {
+                    "--yes" | "-y" => {
+                        yes = true;
+                        i += 1;
+                    }
+                    other => {
+                        if other.starts_with('-') {
+                            return Err(format!("unsupported option '{other}' for 'apply'"));
+                        }
+                        if proposal_path.is_some() {
+                            return Err(format!("unexpected argument '{other}' for 'apply'"));
+                        }
+                        proposal_path = Some(other.to_string());
+                        i += 1;
+                    }
+                }
+            }
+            Ok(Command::Apply { proposal_path, yes })
+        }
+        "validate" => {
+            if argv.len() > 1 {
+                return Err(format!("unexpected argument '{}' for 'validate'", argv[1]));
+            }
+            Ok(Command::Validate)
+        }
         other => {
             if other.starts_with('-') {
                 Err(format!("unsupported option '{}'", other))
@@ -323,6 +375,8 @@ COMMANDS:\n\
     context pack        Pack deterministic Context Pack\n\
     ask                 Run query against provider (dry-run supported)\n\
     propose             Generate proposals for target task (dry-run mode)\n\
+    apply               Apply proposed changes and validate\n\
+    validate            Validate the repository state against proposal\n\
 \n\
 SAFETY DEFAULTS:\n\
     network_default=deny\n\
@@ -716,6 +770,198 @@ fn handle_propose(provider_name: &str, task: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn is_allowed_write_path(path: &str) -> bool {
+    if path.contains("..") {
+        return false;
+    }
+    let p = std::path::Path::new(path);
+    if p.is_absolute() {
+        return false;
+    }
+    let path_lower = path.to_lowercase();
+    if path_lower.contains(".git/") || path_lower.contains(".git\\") {
+        return false;
+    }
+    if path_lower.contains(".comptext/") || path_lower.contains(".comptext\\") {
+        return false;
+    }
+    if path_lower.contains("target/") || path_lower.contains("target\\") {
+        return false;
+    }
+    if path_lower.contains("reports/") || path_lower.contains("reports\\") {
+        return false;
+    }
+    if path_lower == ".env" || path_lower.starts_with(".env.") {
+        return false;
+    }
+    if path_lower.ends_with(".key")
+        || path_lower.ends_with(".pem")
+        || path_lower.ends_with(".p12")
+        || path_lower.ends_with(".pfx")
+    {
+        return false;
+    }
+    if path.starts_with("src/")
+        || path.starts_with("src\\")
+        || path.starts_with("tests/")
+        || path.starts_with("tests\\")
+        || path.starts_with("docs/")
+        || path.starts_with("docs\\")
+        || path.starts_with("proposals/")
+        || path.starts_with("proposals\\")
+        || path == "Cargo.toml"
+        || path == "README.md"
+        || path == "LICENSE"
+        || path == "comptext.example.toml"
+        || path == "PROJEKT.md"
+    {
+        return true;
+    }
+    false
+}
+
+fn apply_simulated_patch(path: &str, detail: &str) -> Result<(), String> {
+    let file_path = std::path::Path::new(path);
+    if !file_path.exists() {
+        return Err(format!("File does not exist: {path}"));
+    }
+    let mut content = std::fs::read_to_string(file_path)
+        .map_err(|e| format!("failed to read file '{path}': {e}"))?;
+    if path.ends_with(".rs") {
+        if !content.ends_with('\n') {
+            content.push('\n');
+        }
+        content.push_str(&format!(
+            "// Mock patch applied: {}\n",
+            detail.replace('\n', " ")
+        ));
+    } else if path.ends_with(".md") {
+        if !content.ends_with('\n') {
+            content.push('\n');
+        }
+        content.push_str(&format!(
+            "<!-- Mock patch applied: {} -->\n",
+            detail.replace('\n', " ")
+        ));
+    } else {
+        println!("Simulating patch on non-source file: {}", path);
+    }
+    std::fs::write(file_path, content)
+        .map_err(|e| format!("failed to write file '{path}': {e}"))?;
+    Ok(())
+}
+
+fn handle_apply(proposal_path: Option<&str>, yes: bool) -> Result<(), String> {
+    let path = proposal_path.unwrap_or("proposals/proposal.latest.json");
+    if !std::path::Path::new(path).exists() {
+        return Err(format!("Proposal file not found at '{path}'"));
+    }
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| format!("failed to read proposal file '{path}': {e}"))?;
+    let proposal: Proposal = serde_json::from_str(&content)
+        .map_err(|e| format!("failed to parse proposal JSON: {e}"))?;
+
+    println!("Applying Proposal:");
+    println!("  Task: {}", proposal.task);
+    println!("  Rationale: {}", proposal.rationale);
+    println!("  Affected files:");
+    for file in &proposal.affected_files {
+        println!("    - {file}");
+    }
+
+    for op in &proposal.operations {
+        if !is_allowed_write_path(&op.path) {
+            return Err(format!(
+                "Security Policy Violation: Path '{}' is not an allowed write path.",
+                op.path
+            ));
+        }
+    }
+
+    if !yes {
+        print!("Confirm applying these changes? [y/N]: ");
+        use std::io::Write;
+        std::io::stdout().flush().map_err(|e| e.to_string())?;
+        let mut input = String::new();
+        std::io::stdin()
+            .read_line(&mut input)
+            .map_err(|e| e.to_string())?;
+        let trimmed = input.trim().to_lowercase();
+        if trimmed != "y" && trimmed != "yes" {
+            println!("Apply cancelled by user.");
+            return Ok(());
+        }
+    }
+
+    println!("Applying operations...");
+    for op in &proposal.operations {
+        if op.op == "patch" {
+            apply_simulated_patch(&op.path, &op.detail)?;
+        } else {
+            return Err(format!("Unsupported operation type: {}", op.op));
+        }
+    }
+
+    println!("Running validation commands...");
+    for cmd_str in &proposal.validation_commands {
+        println!("Executing: {}", cmd_str);
+        let parts: Vec<&str> = cmd_str.split_whitespace().collect();
+        if parts.is_empty() {
+            continue;
+        }
+        let program = parts[0];
+        let args = &parts[1..];
+        let status = std::process::Command::new(program)
+            .args(args)
+            .status()
+            .map_err(|e| format!("failed to run validation command '{cmd_str}': {e}"))?;
+        if !status.success() {
+            return Err(format!(
+                "Validation command '{cmd_str}' failed. Return code: {}",
+                status
+            ));
+        }
+    }
+
+    println!("Proposal applied and validated successfully.");
+    Ok(())
+}
+
+fn handle_validate() -> Result<(), String> {
+    let path = "proposals/proposal.latest.json";
+    if !std::path::Path::new(path).exists() {
+        return Err(format!("No proposal found at '{path}' to validate."));
+    }
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| format!("failed to read proposal file '{path}': {e}"))?;
+    let proposal: Proposal = serde_json::from_str(&content)
+        .map_err(|e| format!("failed to parse proposal JSON: {e}"))?;
+
+    println!("Validating Proposal: {}", proposal.task);
+    println!("Running validation commands...");
+    for cmd_str in &proposal.validation_commands {
+        println!("Executing: {}", cmd_str);
+        let parts: Vec<&str> = cmd_str.split_whitespace().collect();
+        if parts.is_empty() {
+            continue;
+        }
+        let program = parts[0];
+        let args = &parts[1..];
+        let status = std::process::Command::new(program)
+            .args(args)
+            .status()
+            .map_err(|e| format!("failed to run validation command '{cmd_str}': {e}"))?;
+        if !status.success() {
+            return Err(format!(
+                "Validation command '{cmd_str}' failed. Return code: {}",
+                status
+            ));
+        }
+    }
+    println!("Validation completed successfully.");
+    Ok(())
+}
+
 fn slugify(text: &str) -> String {
     text.to_lowercase()
         .chars()
@@ -840,6 +1086,43 @@ mod tests {
                 task: "Add context inspect".to_string()
             })
         );
+    }
+
+    #[test]
+    fn parses_apply() {
+        assert_eq!(
+            parse(&s(&["apply"])),
+            Ok(Command::Apply {
+                proposal_path: None,
+                yes: false
+            })
+        );
+        assert_eq!(
+            parse(&s(&["apply", "proposals/test.json"])),
+            Ok(Command::Apply {
+                proposal_path: Some("proposals/test.json".to_string()),
+                yes: false
+            })
+        );
+        assert_eq!(
+            parse(&s(&["apply", "--yes"])),
+            Ok(Command::Apply {
+                proposal_path: None,
+                yes: true
+            })
+        );
+        assert_eq!(
+            parse(&s(&["apply", "-y", "proposals/test.json"])),
+            Ok(Command::Apply {
+                proposal_path: Some("proposals/test.json".to_string()),
+                yes: true
+            })
+        );
+    }
+
+    #[test]
+    fn parses_validate() {
+        assert_eq!(parse(&s(&["validate"])), Ok(Command::Validate));
     }
 
     #[test]

@@ -1,8 +1,25 @@
+<p align="center">
+  <img src="assets/banner.svg" alt="CompText CLI — Compress the noise, preserve the proof" width="100%">
+</p>
+
 # CompText CLI
 
-**Models are providers. Context is the product.**
+<p align="center">
+  <img src="assets/mark.svg" alt="CompText mark" width="96" height="96">
+</p>
 
-**Compress the noise, preserve the proof.**
+<p align="center">
+  <strong>Models are providers. Context is the product.</strong><br>
+  <strong>Compress the noise, preserve the proof.</strong>
+</p>
+
+<p align="center">
+  <a href="#quickstart">Quickstart</a> ·
+  <a href="#why-comptext">Why CompText?</a> ·
+  <a href="#artifacts">Artifacts</a> ·
+  <a href="#contributing">Contributing</a> ·
+  <a href="assets/README.md">Brand Assets</a>
+</p>
 
 CompText CLI (`ctxt`) is an experimental, local-first terminal tool for turning messy repository state into deterministic, reviewable Context Packs before talking to model providers.
 
@@ -251,6 +268,21 @@ flowchart TD
 `proposals/` contains reviewable change proposals.
 
 `reports/` contains phase evidence and validation summaries.
+
+---
+
+## Brand Assets
+
+Repository artwork lives in [`assets/`](assets/README.md):
+
+```text
+assets/logo.svg             Full wordmark logo
+assets/mark.svg             Square icon / compact mark
+assets/banner.svg           README banner
+assets/social-preview.svg   GitHub social preview source artwork
+```
+
+To use the social preview on GitHub, export `assets/social-preview.svg` to a `1280x640` PNG and upload it under repository settings.
 
 ---
 

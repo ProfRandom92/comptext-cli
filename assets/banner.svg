@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">CompText CLI README banner</title>
+  <desc id="desc">README banner for CompText CLI.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B1020"/>
+      <stop offset="100%" stop-color="#1E1B4B"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7CFFB2"/>
+      <stop offset="52%" stop-color="#58D5FF"/>
+      <stop offset="100%" stop-color="#A78BFA"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="300" rx="36" fill="url(#bg)"/>
+  <path d="M52 230C190 120 304 258 444 142S738 30 892 124s210 88 278 26" fill="none" stroke="url(#accent)" stroke-width="5" opacity="0.34"/>
+  <rect x="72" y="72" width="156" height="156" rx="42" fill="#0F172A" stroke="url(#accent)" stroke-width="5"/>
+  <path d="M108 126h74c24 0 42 18 42 42s-18 42-42 42h-52" fill="none" stroke="url(#accent)" stroke-width="18" stroke-linecap="round"/>
+  <path d="M130 102v130" stroke="#F8FAFC" stroke-width="18" stroke-linecap="round"/>
+  <path d="M98 168h100" stroke="#F8FAFC" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="200" cy="216" r="10" fill="#7CFFB2"/>
+  <text x="268" y="126" fill="#F8FAFC" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="56" font-weight="850" letter-spacing="-1.5">CompText CLI</text>
+  <text x="272" y="176" fill="#CBD5E1" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="24" font-weight="600">Models are providers. Context is the product.</text>
+  <text x="272" y="220" fill="#7CFFB2" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="28" font-weight="800">Compress the noise, preserve the proof.</text>
+</svg>

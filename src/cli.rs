@@ -641,9 +641,15 @@ fn is_sensitive_context_path(path: &str) -> bool {
         || file_name.ends_with(".pem")
         || file_name.ends_with(".p12")
         || file_name.ends_with(".pfx")
-        || file_name.contains("key")
+        || file_name.contains("api_key")
+        || file_name.contains("apikey")
+        || file_name.contains("secret")
+        || file_name.contains("token")
         || file_name.contains("credential")
-        || matches!(file_name, "id_rsa" | "id_dsa" | "id_ecdsa" | "id_ed25519")
+        || matches!(
+            file_name,
+            "key" | "keys" | "id_rsa" | "id_dsa" | "id_ecdsa" | "id_ed25519"
+        )
 }
 
 fn ensure_provider_network_allowed(

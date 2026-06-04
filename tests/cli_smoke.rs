@@ -30,3 +30,17 @@ fn providers_include_dummy_and_ollama_variants() {
     assert!(stdout.contains("ollama-local"));
     assert!(stdout.contains("ollama-cloud-direct"));
 }
+
+#[test]
+fn ask_dummy_provider_succeeds() {
+    let stdout = run(&["ask", "--provider", "dummy", "How do I test this repo?"]);
+    assert!(stdout.contains("Response from dummy provider:"));
+    assert!(stdout.contains("Mock LLM response from CompText Dummy Provider."));
+    assert!(stdout.contains("Received prompt: \"How do I test this repo?\""));
+
+    // Verify response file was written
+    let response_path = std::path::Path::new(".comptext/model_response.latest.json");
+    assert!(response_path.exists());
+    let response_content = std::fs::read_to_string(response_path).unwrap();
+    assert!(response_content.contains("\"provider\": \"dummy\""));
+}

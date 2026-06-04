@@ -22,7 +22,7 @@ CompText CLI is an experimental terminal context client for building determinist
 | **Phase 0** | Repo Genesis & Bootstrap | Scaffold Rust project, basic commands (`help`, `doctor`, `providers list`, `version`), verify CI | **COMPLETE** |
 | **Phase 1** | CLI Shell Hardening | Hardening argument parsing, input handling, and errors for the base shell commands | **COMPLETE** |
 | **Phase 2** | Context Pack Contract | Implement `ctxt context inspect`, `ctxt context pack --task "..."`, and `ctxt ask --dry-run "..."` | **COMPLETE** |
-| **Phase 3** | Provider Adapter Layer | Define provider interface and Dummy offline test provider | *PLANNED* |
+| **Phase 3** | Provider Adapter Layer | Define provider interface and Dummy offline test provider | **COMPLETE** |
 | **Phase 4** | Ollama Local Adapter | Support local Ollama integrations with explicit network boundaries | *PLANNED* |
 | **Phase 5** | Proposal Apply Gate | Implement proposal files, approval checks, and validation flow | *PLANNED* |
 

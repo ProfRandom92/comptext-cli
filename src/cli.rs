@@ -9,8 +9,14 @@ enum Command {
     Doctor,
     ProvidersList,
     ContextInspect,
-    ContextPack { task: String },
-    Ask { dry_run: bool, prompt: String },
+    ContextPack {
+        task: String,
+    },
+    Ask {
+        provider: Option<String>,
+        dry_run: bool,
+        prompt: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -87,7 +93,11 @@ where
                 1
             }
         },
-        Ok(Command::Ask { dry_run, prompt }) => match handle_ask(dry_run, &prompt) {
+        Ok(Command::Ask {
+            provider,
+            dry_run,
+            prompt,
+        }) => match handle_ask(provider.as_deref(), dry_run, &prompt) {
             Ok(_) => 0,
             Err(e) => {
                 eprintln!("error: {e}");
@@ -189,22 +199,53 @@ fn parse(argv: &[String]) -> Result<Command, String> {
         "ask" => {
             if argv.len() < 3 {
                 return Err(
-                    "missing arguments for 'ask'. Usage: ctxt ask --dry-run \"<prompt>\""
+                    "missing arguments for 'ask'. Usage: ctxt ask --dry-run \"<prompt>\" or ctxt ask --provider <provider> \"<prompt>\""
                         .to_string(),
                 );
             }
-            if argv[1] != "--dry-run" {
-                return Err(format!(
-                    "unexpected option '{}' for 'ask'. Expected '--dry-run'",
-                    argv[1]
-                ));
+
+            let mut provider = None;
+            let mut dry_run = false;
+            let mut prompt = String::new();
+
+            let mut i = 1;
+            while i < argv.len() {
+                match argv[i].as_str() {
+                    "--dry-run" => {
+                        dry_run = true;
+                        i += 1;
+                    }
+                    "--provider" => {
+                        if i + 1 >= argv.len() {
+                            return Err("missing provider name after --provider".to_string());
+                        }
+                        provider = Some(argv[i + 1].clone());
+                        i += 2;
+                    }
+                    other => {
+                        if other.starts_with('-') {
+                            return Err(format!("unsupported option '{other}' for 'ask'"));
+                        }
+                        if !prompt.is_empty() {
+                            return Err(format!("unexpected argument '{other}' for 'ask'"));
+                        }
+                        prompt = other.to_string();
+                        i += 1;
+                    }
+                }
             }
-            let prompt = argv[2].clone();
-            if argv.len() > 3 {
-                return Err(format!("unexpected argument '{}' for 'ask'", argv[3]));
+
+            if prompt.is_empty() {
+                return Err("missing prompt for 'ask'".to_string());
             }
+
+            if !dry_run && provider.is_none() {
+                return Err("must specify either --dry-run or --provider <provider>".to_string());
+            }
+
             Ok(Command::Ask {
-                dry_run: true,
+                provider,
+                dry_run,
                 prompt,
             })
         }
@@ -410,11 +451,7 @@ fn handle_context_pack(task: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn handle_ask(dry_run: bool, prompt: &str) -> Result<(), String> {
-    if !dry_run {
-        return Err("Only dry-run is supported. Use --dry-run flag.".to_string());
-    }
-
+fn handle_ask(provider: Option<&str>, dry_run: bool, prompt: &str) -> Result<(), String> {
     let cp = build_context_pack(prompt)?;
     std::fs::create_dir_all(".comptext")
         .map_err(|e| format!("failed to create .comptext directory: {e}"))?;
@@ -430,7 +467,7 @@ fn handle_ask(dry_run: bool, prompt: &str) -> Result<(), String> {
         cp.rendered_context
     );
     let request = ModelRequest {
-        provider: "dummy".to_string(),
+        provider: provider.unwrap_or("dummy").to_string(),
         model: "dummy-model".to_string(),
         messages: vec![
             Message {
@@ -450,10 +487,32 @@ fn handle_ask(dry_run: bool, prompt: &str) -> Result<(), String> {
     std::fs::write(".comptext/model_request.latest.json", req_json)
         .map_err(|e| format!("failed to write model request: {e}"))?;
 
-    println!("Dry-run successful.");
-    println!("Context Pack: .comptext/context_pack.latest.json");
-    println!("Model Request: .comptext/model_request.latest.json");
-    Ok(())
+    if dry_run {
+        println!("Dry-run successful.");
+        println!("Context Pack: .comptext/context_pack.latest.json");
+        println!("Model Request: .comptext/model_request.latest.json");
+        return Ok(());
+    }
+
+    let p_name = provider.ok_or_else(|| "provider is required for live execution".to_string())?;
+    match p_name {
+        "dummy" => {
+            use crate::provider::{DummyProvider, Provider};
+            let prov = DummyProvider;
+            let response = prov.execute(&request)?;
+
+            let resp_json = serde_json::to_string_pretty(&response)
+                .map_err(|e| format!("failed to serialize model response: {e}"))?;
+
+            std::fs::write(".comptext/model_response.latest.json", resp_json)
+                .map_err(|e| format!("failed to write model response: {e}"))?;
+
+            println!("Response from {} provider:", prov.name());
+            println!("{}", response.content);
+            Ok(())
+        }
+        other => Err(format!("unsupported provider '{other}'")),
+    }
 }
 
 #[cfg(test)]
@@ -519,7 +578,25 @@ mod tests {
         assert_eq!(
             parse(&s(&["ask", "--dry-run", "How do I test this repo?"])),
             Ok(Command::Ask {
+                provider: None,
                 dry_run: true,
+                prompt: "How do I test this repo?".to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn parses_ask_provider() {
+        assert_eq!(
+            parse(&s(&[
+                "ask",
+                "--provider",
+                "dummy",
+                "How do I test this repo?"
+            ])),
+            Ok(Command::Ask {
+                provider: Some("dummy".to_string()),
+                dry_run: false,
                 prompt: "How do I test this repo?".to_string()
             })
         );

@@ -16,20 +16,88 @@ It is a proof-preserving context compression and validation workflow for softwar
 
 CompText turns noisy project state into structured, reviewable artifacts:
 
-```text
-Repository state
-  -> Context Pack
-  -> Policy Gate
-  -> Provider Boundary
-  -> Proposal Artifact
-  -> Apply Gate
-  -> Local Validation
-  -> Report / Evidence
+```mermaid
+flowchart TD
+    A[Repository state] --> B[Context Inspect]
+    B --> C[Schema-checked Context Pack]
+    C --> D[Policy Gate]
+    D --> E{Provider Intent?}
+    E -->|dry-run| F[Model Request Artifact]
+    E -->|dummy| G[Deterministic Dummy Provider]
+    E -->|local/cloud provider| H[Provider Boundary]
+    H --> I[Untrusted Provider Response]
+    G --> I
+    F --> J[Reviewable Evidence]
+    I --> K[Proposal Artifact]
+    K --> L{Human Review}
+    L -->|approved| M[Apply Gate]
+    L -->|rejected| N[Stop]
+    M --> O[Local Validation]
+    O --> P[Report / Evidence]
 ```
 
 The goal is not to send more context to a model.
 
 The goal is to send the right context, preserve the proof, and keep every risky step reviewable.
+
+---
+
+## Architecture at a Glance
+
+```mermaid
+flowchart LR
+    subgraph Source[Project Source]
+        R[Repository Files]
+        A[AGENTS.md]
+        P[PROJEKT.md]
+        D[docs/]
+    end
+
+    subgraph CompText[ctxt CLI]
+        CI[context inspect]
+        CP[context pack]
+        PG[policy gate]
+        PA[provider adapter]
+        PR[propose]
+        AG[apply gate]
+        VA[validate]
+    end
+
+    subgraph Artifacts[Proof Artifacts]
+        CPK[.comptext/context_pack.latest.json]
+        MR[.comptext/model_request.latest.json]
+        MS[.comptext/model_response.latest.json]
+        PP[proposals/*.json]
+        RP[reports/phase_*_status.md]
+    end
+
+    subgraph Providers[Provider Boundary]
+        DU[dummy]
+        OL[ollama-local]
+        OC[ollama-cloud-direct]
+        OA[openai-compatible]
+    end
+
+    R --> CI
+    A --> CI
+    P --> CI
+    D --> CI
+    CI --> CP
+    CP --> PG
+    PG --> PA
+    PA --> DU
+    PA --> OL
+    PA --> OC
+    PA --> OA
+    PA --> MS
+    CP --> CPK
+    PG --> MR
+    MS --> PR
+    PR --> PP
+    PP --> AG
+    AG --> VA
+    VA --> RP
+```
 
 ---
 
@@ -48,6 +116,60 @@ The goal is to send the right context, preserve the proof, and keep every risky 
 
 ---
 
+## Trust Boundaries
+
+CompText separates context, provider calls, proposals, and mutation into explicit trust zones.
+
+```mermaid
+flowchart TD
+    subgraph Trusted[Trusted Project Inputs]
+        AG[AGENTS.md]
+        PJ[PROJEKT.md]
+        SRC[Source files]
+        DOC[Docs]
+    end
+
+    subgraph Controlled[Controlled CompText Artifacts]
+        CP[Context Pack]
+        REQ[Provider Request Artifact]
+        PROP[Proposal Artifact]
+        REP[Validation Report]
+    end
+
+    subgraph Untrusted[Untrusted Inputs]
+        MOD[Model Output]
+        PROV[Provider Response]
+        TOOL[Tool Output]
+        MCP[MCP Server Output]
+        PATCH[Generated Patch]
+    end
+
+    subgraph Gates[Policy Gates]
+        PG[Policy Gate]
+        HR[Human Review]
+        AP[Apply Gate]
+        VAL[Local Validation]
+    end
+
+    Trusted --> CP
+    CP --> PG
+    PG --> REQ
+    REQ --> PROV
+    PROV --> PROP
+    MOD --> PROP
+    TOOL --> PROP
+    MCP --> PROP
+    PATCH --> PROP
+    PROP --> HR
+    HR --> AP
+    AP --> VAL
+    VAL --> REP
+
+    Untrusted -.must be reviewed.-> HR
+```
+
+---
+
 ## Current Status
 
 ```text
@@ -57,6 +179,35 @@ Current phase: Phase 5
 Current task: Proposal Mode
 Last green phase: Phase 4C
 Status: active
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> Phase0
+    Phase0: Repo Genesis & Bootstrap
+    Phase1: CLI Shell Hardening
+    Phase2: Context Pack Contract
+    Phase3: Provider Adapter Layer / Dummy Provider
+    Phase4: Ollama Local Adapter
+    Phase4B: Skill Registry Normalization
+    Phase4C: Long-Run Autonomy Hardening
+    Phase5: Proposal Mode
+    Phase6: Apply Gate
+    Phase7: Provider Config Layer
+    Phase8: OpenAI-Compatible Adapter
+    Phase9: Validate and Benchmark
+
+    Phase0 --> Phase1: complete
+    Phase1 --> Phase2: complete
+    Phase2 --> Phase3: complete
+    Phase3 --> Phase4: complete
+    Phase4 --> Phase4B: complete
+    Phase4B --> Phase4C: complete
+    Phase4C --> Phase5: active
+    Phase5 --> Phase6: queued
+    Phase6 --> Phase7: queued
+    Phase7 --> Phase8: queued
+    Phase8 --> Phase9: queued
 ```
 
 Completed:
@@ -115,6 +266,29 @@ Not every command may be available in the current phase. The roadmap is intentio
 ---
 
 ## Example Workflow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI as ctxt CLI
+    participant CP as Context Pack
+    participant Provider
+    participant Proposal
+    participant Gate as Apply Gate
+    participant Tests as Local Validation
+
+    User->>CLI: ctxt context inspect
+    CLI->>CP: collect bounded project context
+    User->>CLI: ctxt ask --dry-run "..."
+    CLI->>CP: render provider request artifact
+    User->>CLI: ctxt propose --provider dummy "..."
+    CLI->>Provider: send bounded request
+    Provider-->>CLI: untrusted response
+    CLI->>Proposal: write reviewable proposal JSON
+    User->>Gate: approve selected proposal
+    Gate->>Tests: run validation
+    Tests-->>User: report / evidence
+```
 
 ### 1. Inspect the repository context
 
@@ -176,6 +350,23 @@ It must not apply changes.
 
 CompText produces artifacts that help preserve evidence without trusting logs alone.
 
+```mermaid
+flowchart TD
+    CTX[ctxt command] --> CP[.comptext/context_pack.latest.json]
+    CTX --> MR[.comptext/model_request.latest.json]
+    CTX --> MS[.comptext/model_response.latest.json]
+    CTX --> PR[.comptext/provider_request.latest.json]
+    CTX --> PP[proposals/*.json]
+    CTX --> RP[reports/phase_*_status.md]
+
+    CP --> Proof[Proof Trail]
+    MR --> Proof
+    MS --> Proof
+    PR --> Proof
+    PP --> Proof
+    RP --> Proof
+```
+
 Common runtime paths:
 
 ```text
@@ -233,6 +424,18 @@ A proposal is an inspectable artifact.
 
 It is not an applied patch.
 
+```mermaid
+flowchart LR
+    A[Context Pack] --> B[Provider Request]
+    B --> C[Untrusted Provider Response]
+    C --> D[Proposal JSON]
+    D --> E{Review Required}
+    E -->|approve| F[Apply Gate]
+    E -->|reject| G[No Mutation]
+    F --> H[Validation Commands]
+    H --> I[Phase Report]
+```
+
 Recommended proposal shape:
 
 ```json
@@ -285,6 +488,24 @@ openai-compatible
 future-openai
 future-gemini
 custom
+```
+
+```mermaid
+flowchart TD
+    PA[Provider Adapter] --> DU[dummy]
+    PA --> OL[ollama-local]
+    PA --> OVL[ollama-cloud-via-local]
+    PA --> OCD[ollama-cloud-direct]
+    PA --> OAI[openai-compatible]
+    PA --> FO[future-openai]
+    PA --> FG[future-gemini]
+    PA --> CU[custom]
+
+    DU --> OFF[offline / deterministic]
+    OL --> LOC[localhost boundary]
+    OVL --> MIX[local API plus cloud model boundary]
+    OCD --> NET[remote network boundary]
+    OAI --> API[normalized API boundary]
 ```
 
 ### Dummy Provider
@@ -394,6 +615,18 @@ proposals/
 .agents/skills/
 ```
 
+```mermaid
+flowchart TD
+    AG[AGENTS.md] --> GOV[Governance]
+    PJ[PROJEKT.md] --> STATE[State Machine]
+    DOC[docs/] --> SPEC[Contracts / Architecture]
+    SK1[.agent/skills/] --> SK[Agent Skills]
+    SK2[.agents/skills/] --> SK
+    CMP[.comptext/] --> RUN[Runtime Artifacts]
+    PROP[proposals/] --> REV[Review Artifacts]
+    REP[reports/] --> EVD[Evidence]
+```
+
 `PROJEKT.md` is the project state machine.
 
 `AGENTS.md` is the safety constitution.
@@ -407,6 +640,18 @@ proposals/
 ---
 
 ## Roadmap
+
+```mermaid
+flowchart LR
+    P5[Phase 5<br/>Proposal Mode] --> P6[Phase 6<br/>Apply Gate]
+    P6 --> P7[Phase 7<br/>Provider Config Layer]
+    P7 --> P8[Phase 8<br/>OpenAI-Compatible Adapter]
+    P8 --> P9[Phase 9<br/>Validate and Benchmark]
+    P9 --> P10[Phase 10<br/>MCP Provider Boundary]
+    P10 --> P11[Phase 11<br/>Hook / Workflow Governance]
+    P11 --> P12[Phase 12<br/>Token Compression Intercepts]
+    P12 --> P13[Phase 13<br/>Skill Bundle Registry]
+```
 
 ```text
 Phase 5   Proposal Mode
@@ -476,6 +721,14 @@ NEXT:
 ## Repository Separation
 
 CompText is part of a wider project family.
+
+```mermaid
+flowchart TD
+    CORE[Comptextv7<br/>core / research / replay validation] --> CLI[comptext-cli<br/>product CLI / terminal UX]
+    SPARK[comptext-sparkctl<br/>validation / benchmark / evidence] --> CLI
+    SKILLS[antigravity-skills<br/>progressive workflow capsules] --> CLI
+    CLI --> USER[reviewable engineering workflow]
+```
 
 ### comptext-cli
 

@@ -87,10 +87,10 @@ CompText is for developers who want AI-assisted workflows with stronger boundari
 ```text
 Binary: ctxt
 Current phase: Phase 16
-Current task: Agent State Contract Skeleton Review-Gate
-Last green phase: Phase 15
-Status: review-pending
-Next allowed action: Phase 16 Review-Gate closeout
+Current task: Agent State Contract Skeleton
+Last green phase: Phase 16
+Status: complete
+Next allowed action: Phase 17 planning on feature branch
 ```
 
 Completed so far:
@@ -114,13 +114,13 @@ Phase 12  Antigravity CLI Governance & Token Economy COMPLETE
 Phase 13  Skill Bundle Registry                  COMPLETE
 Phase 14  Hook/Permission Integration            COMPLETE
 Phase 15  Cryptographic Provenance Engine        COMPLETE
-Phase 16  Agent State Contract Skeleton          REVIEW-GATE
+Phase 16  Agent State Contract Skeleton          COMPLETE
 ```
 
 Next areas:
 
 ```text
-Phase 16 Review-Gate closeout
+Phase 17 Bounded Execution Monitoring planning on feature branch
 ```
 
 ### Review-Gate Operating Rules
@@ -142,13 +142,15 @@ REVIEW-GATE     no edits, PASS or BLOCKED only
 PHASE WORK      bounded implementation after Review-Gate approval
 ```
 
-Current Phase 15 cleanup must preserve these boundaries:
+Current Phase 16 boundaries:
 
 ```text
-local SHA-256 provenance manifests only
-raw file content SHA-256 unless canonicalization is implemented
+local agent-state capture/verify/report only
+agent-state JSON as bounded evidence artifact
+sensitive paths skipped or rejected before reads
+evidence entries sorted by id and file_path before write
 no unsupported assurance claims
-no arbitrary path reads or manifest writes outside the repo root
+no automatic phase progression
 ```
 
 ```mermaid
@@ -162,8 +164,9 @@ flowchart LR
     P11 --> P12[CLI Governance]
     P12 --> P13[Skill Registry]
     P13 --> P14[Hook Integration]
-    P14 --> P15[Provenance Engine Cleanup]
-    P15 --> P16[Agent State Contract Skeleton]
+    P14 --> P15[Provenance Engine]
+    P15 --> P16[Agent State Contract]
+    P16 --> P17[Bounded Execution Monitoring Planning]
 ```
 
 ---

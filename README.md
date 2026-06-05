@@ -86,11 +86,11 @@ CompText is for developers who want AI-assisted workflows with stronger boundari
 
 ```text
 Binary: ctxt
-Current phase: Phase 15
-Current task: Cryptographic Provenance Engine
+Current phase: Phase 16
+Current task: Agent State Contract Skeleton
 Last green phase: Phase 15
 Status: complete
-Next allowed action: Phase 16 planning on feature branch
+Next allowed action: Phase 16 Review-Gate closeout
 ```
 
 Completed so far:
@@ -114,12 +114,13 @@ Phase 12  Antigravity CLI Governance & Token Economy COMPLETE
 Phase 13  Skill Bundle Registry                  COMPLETE
 Phase 14  Hook/Permission Integration            COMPLETE
 Phase 15  Cryptographic Provenance Engine        COMPLETE
+Phase 16  Agent State Contract Skeleton          COMPLETE
 ```
 
 Next areas:
 
 ```text
-Phase 16  Agent State Contract planning on feature branch
+Phase 16 Review-Gate closeout
 ```
 
 ### Review-Gate Operating Rules
@@ -162,7 +163,7 @@ flowchart LR
     P12 --> P13[Skill Registry]
     P13 --> P14[Hook Integration]
     P14 --> P15[Provenance Engine Cleanup]
-    P15 --> P16[Agent State Contract Planning]
+    P15 --> P16[Agent State Contract Skeleton]
 ```
 
 ---

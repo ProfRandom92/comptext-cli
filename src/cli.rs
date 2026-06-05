@@ -100,6 +100,11 @@ enum Command {
         file_path: String,
         parent: Option<String>,
     },
+    State {
+        subcommand: String,
+        task: Option<String>,
+        path: Option<String>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -260,6 +265,25 @@ where
         },
         Ok(Command::Benchmark { provider, task }) => {
             match handle_benchmark(provider.as_deref(), &task, &config) {
+                Ok(_) => 0,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    1
+                }
+            }
+        }
+        Ok(Command::State {
+            subcommand,
+            task,
+            path,
+        }) => {
+            let res = match subcommand.as_str() {
+                "capture" => handle_state_capture(task.as_deref().unwrap_or("")),
+                "verify" => handle_state_verify(path.as_deref().unwrap_or("")),
+                "report" => handle_state_report(path.as_deref().unwrap_or("")),
+                other => Err(format!("unknown state subcommand '{other}'")),
+            };
+            match res {
                 Ok(_) => 0,
                 Err(e) => {
                     eprintln!("error: {e}");
@@ -512,6 +536,73 @@ fn parse(argv: &[String]) -> Result<Command, String> {
             }
             Ok(Command::Verify { file_path, parent })
         }
+        "state" => {
+            if argv.len() < 2 {
+                return Err("missing subcommand for 'state'. Usage: ctxt state <capture|verify|report> [options]".to_string());
+            }
+            let sub = argv[1].as_str();
+            match sub {
+                "capture" => {
+                    let mut task = None;
+                    let mut i = 2;
+                    while i < argv.len() {
+                        match argv[i].as_str() {
+                            "--task" => {
+                                if i + 1 >= argv.len() {
+                                    return Err("missing task after --task".to_string());
+                                }
+                                task = Some(argv[i + 1].clone());
+                                i += 2;
+                            }
+                            other => {
+                                return Err(format!(
+                                    "unexpected option '{other}' for 'state capture'"
+                                ));
+                            }
+                        }
+                    }
+                    if task.is_none() {
+                        return Err(
+                            "missing required parameter --task for 'state capture'".to_string()
+                        );
+                    }
+                    Ok(Command::State {
+                        subcommand: "capture".to_string(),
+                        task,
+                        path: None,
+                    })
+                }
+                "verify" => {
+                    if argv.len() != 3 {
+                        return Err("Usage: ctxt state verify <path>".to_string());
+                    }
+                    let path_val = argv[2].clone();
+                    if path_val.starts_with('-') {
+                        return Err(format!("unexpected option '{path_val}' for 'state verify'"));
+                    }
+                    Ok(Command::State {
+                        subcommand: "verify".to_string(),
+                        task: None,
+                        path: Some(path_val),
+                    })
+                }
+                "report" => {
+                    if argv.len() != 3 {
+                        return Err("Usage: ctxt state report <path>".to_string());
+                    }
+                    let path_val = argv[2].clone();
+                    if path_val.starts_with('-') {
+                        return Err(format!("unexpected option '{path_val}' for 'state report'"));
+                    }
+                    Ok(Command::State {
+                        subcommand: "report".to_string(),
+                        task: None,
+                        path: Some(path_val),
+                    })
+                }
+                other => Err(format!("unsupported state subcommand '{other}'")),
+            }
+        }
         "benchmark" => {
             let mut provider = None;
             let mut task = String::new();
@@ -574,6 +665,7 @@ COMMANDS:\n\
     validate            Validate the repository state against proposal\n\
     benchmark           Run deterministic local model/context benchmarks\n\
     verify              Verify or generate local provenance manifest\n\
+    state               Manage and verify agent state contracts\n\
 \n\
 SAFETY DEFAULTS:\n\
     network_default=deny\n\
@@ -1540,6 +1632,322 @@ fn handle_verify(file_path: &str, parent: Option<&str>) -> Result<(), String> {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct AgentState {
+    pub schema_version: String,
+    pub task: String,
+    pub timestamp: String,
+    pub evidence: Vec<EvidenceEntry>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct EvidenceEntry {
+    pub id: String,
+    pub file_path: String,
+    pub sha256: Option<String>,
+    pub status: String,
+    pub failure_label: Option<FailureLabel>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FailureLabel {
+    ChecksumMismatch,
+    PathSafetyViolation,
+    InvalidSchema,
+    MissingFile,
+}
+
+fn collect_files_recursive(
+    dir: &std::path::Path,
+    current_dir: &std::path::Path,
+    entries: &mut Vec<EvidenceEntry>,
+) -> Result<(), String> {
+    if !dir.exists() {
+        return Ok(());
+    }
+    for entry in std::fs::read_dir(dir).map_err(|e| format!("failed to read directory: {e}"))? {
+        let entry = entry.map_err(|e| format!("failed to get entry: {e}"))?;
+        let path = entry.path();
+        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        if file_name == ".git"
+            || file_name == "target"
+            || file_name == ".ssh"
+            || file_name == ".aws"
+            || file_name == "Cargo.lock"
+            || file_name == ".comptext"
+        {
+            continue;
+        }
+        if path.is_dir() {
+            collect_files_recursive(&path, current_dir, entries)?;
+        } else {
+            let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+            let should_include = ext == "rs"
+                || ext == "md"
+                || ext == "toml"
+                || (ext == "json" && path.to_string_lossy().contains(".comptext"));
+            if should_include {
+                let relative_path = path
+                    .strip_prefix(current_dir)
+                    .map_err(|e| format!("failed to strip prefix: {e}"))?;
+                let path_str = relative_path
+                    .to_string_lossy()
+                    .to_string()
+                    .replace('\\', "/");
+
+                let content = std::fs::read(&path)
+                    .map_err(|e| format!("failed to read file '{}': {e}", path.display()))?;
+                let sha = sha256_hex(&content);
+
+                let id = path_str.replace(['/', '.', '-'], "_");
+
+                entries.push(EvidenceEntry {
+                    id,
+                    file_path: path_str,
+                    sha256: Some(sha),
+                    status: "verified".to_string(),
+                    failure_label: None,
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
+fn handle_state_capture(task: &str) -> Result<(), String> {
+    let current_dir = std::env::current_dir()
+        .map_err(|e| format!("failed to get current working directory: {e}"))?;
+
+    let mut evidence = Vec::new();
+    collect_files_recursive(&current_dir, &current_dir, &mut evidence)?;
+
+    let state = AgentState {
+        schema_version: "0.1".to_string(),
+        task: task.to_string(),
+        timestamp: "2026-06-05T13:39:50Z".to_string(),
+        evidence,
+    };
+
+    std::fs::create_dir_all(".comptext")
+        .map_err(|e| format!("failed to create .comptext directory: {e}"))?;
+
+    let state_path = ".comptext/agent_state.latest.json";
+    let json_content = serde_json::to_string_pretty(&state)
+        .map_err(|e| format!("failed to serialize agent state: {e}"))?;
+
+    std::fs::write(state_path, json_content)
+        .map_err(|e| format!("failed to write agent state: {e}"))?;
+
+    println!("Agent state captured and written to {}", state_path);
+    Ok(())
+}
+
+fn handle_state_verify(path_str: &str) -> Result<(), String> {
+    let path = std::path::Path::new(path_str);
+
+    // Path Safety Checks
+    if path.is_absolute() {
+        return Err(
+            "Security Policy Violation: Absolute paths are forbidden in state verify.".to_string(),
+        );
+    }
+
+    let current_dir = std::env::current_dir()
+        .map_err(|e| format!("failed to get current working directory: {e}"))?;
+    let canonical_current_dir = current_dir
+        .canonicalize()
+        .map_err(|e| format!("failed to canonicalize current directory: {e}"))?;
+
+    if !path.exists() {
+        return Err(format!("File '{}' does not exist.", path_str));
+    }
+
+    let canonical_path = path
+        .canonicalize()
+        .map_err(|e| format!("failed to canonicalize path '{}': {e}", path_str))?;
+
+    if !canonical_path.starts_with(&canonical_current_dir) {
+        return Err(
+            "Security Policy Violation: Target path escapes the repository boundary.".to_string(),
+        );
+    }
+
+    // Secrets Check
+    let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    if file_name == ".env"
+        || file_name.starts_with(".env.")
+        || file_name.ends_with(".key")
+        || file_name.ends_with(".pem")
+        || file_name == "id_rsa"
+        || file_name == "id_ed25519"
+    {
+        return Err(
+            "Security Policy Violation: Accessing secrets or configuration files is forbidden."
+                .to_string(),
+        );
+    }
+
+    for component in canonical_path.components() {
+        if let std::path::Component::Normal(os_str) = component {
+            if let Some(s) = os_str.to_str() {
+                if s == ".git" || s == ".ssh" || s == ".aws" {
+                    return Err("Security Policy Violation: Accessing sensitive directories (.git, .ssh, .aws) is forbidden.".to_string());
+                }
+            }
+        }
+    }
+
+    let content = std::fs::read_to_string(&canonical_path)
+        .map_err(|e| format!("failed to read state file: {e}"))?;
+
+    let state: AgentState = serde_json::from_str(&content)
+        .map_err(|e| format!("failed to parse AgentState JSON: {e}"))?;
+
+    // 1. schema_version == "0.1"
+    if state.schema_version != "0.1" {
+        return Err("Verification failed: Invalid schema version. Expected '0.1'.".to_string());
+    }
+
+    // 2. unique evidence IDs
+    let mut seen_ids = std::collections::HashSet::new();
+    for entry in &state.evidence {
+        if !seen_ids.insert(&entry.id) {
+            return Err(format!(
+                "Verification failed: Duplicate evidence ID '{}'.",
+                entry.id
+            ));
+        }
+    }
+
+    // 3. check evidence paths and hashes
+    for entry in &state.evidence {
+        let ref_path = std::path::Path::new(&entry.file_path);
+
+        // Rejects absolute path in evidence
+        if ref_path.is_absolute() {
+            return Err(format!(
+                "Verification failed: Absolute path '{}' in evidence is forbidden.",
+                entry.file_path
+            ));
+        }
+
+        // Check directory traversal escaping repo root
+        let target_path = current_dir.join(ref_path);
+        let canonical_target = match target_path.canonicalize() {
+            Ok(c) => c,
+            Err(_) => {
+                if entry.status == "failed"
+                    && entry.failure_label == Some(FailureLabel::MissingFile)
+                {
+                    continue;
+                }
+                return Err(format!(
+                    "Verification failed: Referenced file '{}' does not exist.",
+                    entry.file_path
+                ));
+            }
+        };
+
+        if !canonical_target.starts_with(&canonical_current_dir) {
+            return Err(format!(
+                "Security Policy Violation: Referenced path '{}' escapes repository boundary.",
+                entry.file_path
+            ));
+        }
+
+        // Check secret files
+        let ref_name = ref_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        if ref_name == ".env"
+            || ref_name.starts_with(".env.")
+            || ref_name.ends_with(".key")
+            || ref_name.ends_with(".pem")
+        {
+            return Err(format!(
+                "Security Policy Violation: Referenced path '{}' is a secret file.",
+                entry.file_path
+            ));
+        }
+
+        if let Some(ref expected_hash) = entry.sha256 {
+            let ref_content = std::fs::read(&canonical_target).map_err(|e| {
+                format!("failed to read referenced file '{}': {e}", entry.file_path)
+            })?;
+            let actual_hash = sha256_hex(&ref_content);
+            if actual_hash != *expected_hash {
+                if entry.status == "failed"
+                    && entry.failure_label == Some(FailureLabel::ChecksumMismatch)
+                {
+                    continue;
+                }
+                return Err(format!(
+                    "Verification failed: Checksum mismatch for '{}'.\nExpected: {}\nActual:   {}",
+                    entry.file_path, expected_hash, actual_hash
+                ));
+            }
+        }
+    }
+
+    println!("State verification successful.");
+    Ok(())
+}
+
+fn handle_state_report(path_str: &str) -> Result<(), String> {
+    let path = std::path::Path::new(path_str);
+
+    // Path Safety Checks
+    if path.is_absolute() {
+        return Err(
+            "Security Policy Violation: Absolute paths are forbidden in state report.".to_string(),
+        );
+    }
+
+    let current_dir = std::env::current_dir()
+        .map_err(|e| format!("failed to get current working directory: {e}"))?;
+    let canonical_current_dir = current_dir
+        .canonicalize()
+        .map_err(|e| format!("failed to canonicalize current directory: {e}"))?;
+
+    if !path.exists() {
+        return Err(format!("File '{}' does not exist.", path_str));
+    }
+
+    let canonical_path = path
+        .canonicalize()
+        .map_err(|e| format!("failed to canonicalize path '{}': {e}", path_str))?;
+
+    if !canonical_path.starts_with(&canonical_current_dir) {
+        return Err(
+            "Security Policy Violation: Target path escapes the repository boundary.".to_string(),
+        );
+    }
+
+    let content = std::fs::read_to_string(&canonical_path)
+        .map_err(|e| format!("failed to read state file: {e}"))?;
+    let mut state: AgentState = serde_json::from_str(&content)
+        .map_err(|e| format!("failed to parse AgentState JSON: {e}"))?;
+
+    // Sort evidence by ID to guarantee stable order
+    state.evidence.sort_by(|a, b| a.id.cmp(&b.id));
+
+    println!("Agent State Report");
+    println!("Task: {}", state.task);
+    println!("Timestamp: {}", state.timestamp);
+    println!("Schema Version: {}", state.schema_version);
+    println!("\nEvidence Status Summary:");
+    for entry in &state.evidence {
+        let failure_str = if let Some(ref fl) = entry.failure_label {
+            format!(" [Failure: {:?}]", fl)
+        } else {
+            "".to_string()
+        };
+        println!(
+            "ID: {} | Path: {} | Status: {}{}",
+            entry.id, entry.file_path, entry.status, failure_str
+        );
+    }
+    Ok(())
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BenchmarkArtifact {
     pub schema_version: String,
@@ -2164,5 +2572,142 @@ mod tests {
         // Clean up
         let _ = std::fs::remove_file(test_file_path);
         let _ = std::fs::remove_file(manifest_path);
+    }
+
+    #[test]
+    fn test_agent_state_parser_and_schema() {
+        use super::AgentState;
+
+        let json_data = r#"{
+            "schema_version": "0.1",
+            "task": "Test task description",
+            "timestamp": "2026-06-05T13:39:50Z",
+            "evidence": [
+                {
+                    "id": "src_cli_rs",
+                    "file_path": "src/cli.rs",
+                    "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+                    "status": "verified",
+                    "failure_label": null
+                }
+            ]
+        }"#;
+
+        let parsed: AgentState = serde_json::from_str(json_data).unwrap();
+        assert_eq!(parsed.schema_version, "0.1");
+        assert_eq!(parsed.task, "Test task description");
+        assert_eq!(parsed.evidence.len(), 1);
+        assert_eq!(parsed.evidence[0].id, "src_cli_rs");
+        assert_eq!(parsed.evidence[0].failure_label, None);
+    }
+
+    #[test]
+    fn test_agent_state_invalid_failure_label() {
+        use super::AgentState;
+        let json_data = r#"{
+            "schema_version": "0.1",
+            "task": "Test invalid label",
+            "timestamp": "2026-06-05T13:39:50Z",
+            "evidence": [
+                {
+                    "id": "src_cli_rs",
+                    "file_path": "src/cli.rs",
+                    "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+                    "status": "failed",
+                    "failure_label": "InvalidFailureLabel"
+                }
+            ]
+        }"#;
+
+        let parsed: Result<AgentState, _> = serde_json::from_str(json_data);
+        assert!(parsed.is_err());
+    }
+
+    #[test]
+    fn test_agent_state_capture_verify_report_integration() {
+        use super::{handle_state_capture, handle_state_report, handle_state_verify};
+
+        let temp_state_file = ".comptext/agent_state.latest.json";
+        let _ = std::fs::remove_file(temp_state_file);
+
+        // 1. Test Capture
+        let cap_res = handle_state_capture("Integration test task");
+        assert!(cap_res.is_ok());
+        assert!(std::path::Path::new(temp_state_file).exists());
+
+        // 2. Test Verify Pass
+        let verify_res = handle_state_verify(temp_state_file);
+        assert!(verify_res.is_ok(), "verify failed: {:?}", verify_res.err());
+
+        // 3. Test Verify Failure - Absolute Path Rejection in state file path
+        let abs_path = if cfg!(windows) {
+            "C:\\abs\\path\\file.json"
+        } else {
+            "/abs/path/file.json"
+        };
+        let verify_abs_res = handle_state_verify(abs_path);
+        assert!(verify_abs_res.is_err());
+        assert!(verify_abs_res
+            .unwrap_err()
+            .contains("Absolute paths are forbidden"));
+
+        // 4. Test Verify Failure - Absolute Path Rejection in referenced evidence path
+        let ref_abs_path = if cfg!(windows) {
+            "C:\\absolute\\ref\\path.rs"
+        } else {
+            "/absolute/ref/path.rs"
+        };
+        let mutated_json = format!(
+            r#"{{
+            "schema_version": "0.1",
+            "task": "Integration test task",
+            "timestamp": "2026-06-05T13:39:50Z",
+            "evidence": [
+                {{
+                    "id": "abs_ref",
+                    "file_path": "{}",
+                    "sha256": null,
+                    "status": "unverified",
+                    "failure_label": null
+                }}
+            ]
+        }}"#,
+            ref_abs_path.replace('\\', "\\\\")
+        );
+        std::fs::write(temp_state_file, mutated_json).unwrap();
+        let verify_abs_ref_res = handle_state_verify(temp_state_file);
+        assert!(verify_abs_ref_res.is_err());
+        assert!(verify_abs_ref_res
+            .unwrap_err()
+            .contains("in evidence is forbidden"));
+
+        // 5. Test Verify Failure - Checksum Mismatch
+        let mismatch_json = r#"{
+            "schema_version": "0.1",
+            "task": "Integration test task",
+            "timestamp": "2026-06-05T13:39:50Z",
+            "evidence": [
+                {
+                    "id": "src_cli_rs",
+                    "file_path": "src/cli.rs",
+                    "sha256": "wronghashwronghashwronghashwronghashwronghashwronghashwronghash",
+                    "status": "verified",
+                    "failure_label": null
+                }
+            ]
+        }"#;
+        std::fs::write(temp_state_file, mismatch_json).unwrap();
+        let verify_mismatch_res = handle_state_verify(temp_state_file);
+        assert!(verify_mismatch_res.is_err());
+        assert!(verify_mismatch_res
+            .unwrap_err()
+            .contains("Checksum mismatch"));
+
+        // 6. Test stable report printing
+        let report_res = handle_state_report(temp_state_file);
+        assert!(report_res.is_ok());
+
+        // Clean up
+        let _ = std::fs::remove_file(temp_state_file);
     }
 }

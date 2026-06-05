@@ -90,3 +90,12 @@ This document serves as the local registry index for all authorized skills in th
 - **Forbidden Scope**: Implementing remote network registries, blockchain, consensus protocols, or active hooks.
 - **Validation Commands**: `cargo test`
 - **Local SHA-256 Checksum**: `68D210DCAF7E7A95F65AC9EE5179FD60212D63CD9B85A92F24A9D4267B64B329`
+
+### 10. `ctxt-phase-16-agent-state-contract`
+- **Path**: [.agent/skills/ctxt-phase-16-agent-state-contract/SKILL.md](file:///.agent/skills/ctxt-phase-16-agent-state-contract/SKILL.md)
+- **Description**: Adds local agent state capturing, verification, and reporting commands.
+- **Intended Use**: Capturing local agent state and verifying agent-state JSON files against actual files.
+- **Allowed Scope**: Modifying Rust CLI files and adding markdown docs.
+- **Forbidden Scope**: Implementing remote network registries, blockchain, consensus protocols, active hooks, or making unsupported claims.
+- **Validation Commands**: `cargo test`
+- **Local SHA-256 Checksum**: `AD4A5832B29E290B8E0EEAF535EB97D8589CB6E4AAF565B8882F0F2DC9BB51A6`

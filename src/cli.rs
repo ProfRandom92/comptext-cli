@@ -1657,6 +1657,33 @@ pub enum FailureLabel {
     MissingFile,
 }
 
+fn is_sensitive_path(path: &std::path::Path) -> bool {
+    if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
+        if file_name == ".env"
+            || file_name.starts_with(".env.")
+            || file_name.ends_with(".key")
+            || file_name.ends_with(".pem")
+            || file_name == "id_rsa"
+            || file_name == "id_ed25519"
+            || file_name == ".git"
+            || file_name == ".ssh"
+            || file_name == ".aws"
+        {
+            return true;
+        }
+    }
+    for component in path.components() {
+        if let std::path::Component::Normal(os_str) = component {
+            if let Some(s) = os_str.to_str() {
+                if s == ".git" || s == ".ssh" || s == ".aws" {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
 fn collect_files_recursive(
     dir: &std::path::Path,
     current_dir: &std::path::Path,
@@ -1669,12 +1696,10 @@ fn collect_files_recursive(
         let entry = entry.map_err(|e| format!("failed to get entry: {e}"))?;
         let path = entry.path();
         let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-        if file_name == ".git"
-            || file_name == "target"
-            || file_name == ".ssh"
-            || file_name == ".aws"
+        if file_name == "target"
             || file_name == "Cargo.lock"
             || file_name == ".comptext"
+            || is_sensitive_path(&path)
         {
             continue;
         }
@@ -1752,6 +1777,13 @@ fn handle_state_verify(path_str: &str) -> Result<(), String> {
         );
     }
 
+    if is_sensitive_path(path) {
+        return Err(
+            "Security Policy Violation: Accessing secrets or sensitive files is forbidden."
+                .to_string(),
+        );
+    }
+
     let current_dir = std::env::current_dir()
         .map_err(|e| format!("failed to get current working directory: {e}"))?;
     let canonical_current_dir = current_dir
@@ -1772,29 +1804,11 @@ fn handle_state_verify(path_str: &str) -> Result<(), String> {
         );
     }
 
-    // Secrets Check
-    let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-    if file_name == ".env"
-        || file_name.starts_with(".env.")
-        || file_name.ends_with(".key")
-        || file_name.ends_with(".pem")
-        || file_name == "id_rsa"
-        || file_name == "id_ed25519"
-    {
+    if is_sensitive_path(&canonical_path) {
         return Err(
-            "Security Policy Violation: Accessing secrets or configuration files is forbidden."
+            "Security Policy Violation: Accessing secrets or sensitive files is forbidden."
                 .to_string(),
         );
-    }
-
-    for component in canonical_path.components() {
-        if let std::path::Component::Normal(os_str) = component {
-            if let Some(s) = os_str.to_str() {
-                if s == ".git" || s == ".ssh" || s == ".aws" {
-                    return Err("Security Policy Violation: Accessing sensitive directories (.git, .ssh, .aws) is forbidden.".to_string());
-                }
-            }
-        }
     }
 
     let content = std::fs::read_to_string(&canonical_path)
@@ -1831,6 +1845,13 @@ fn handle_state_verify(path_str: &str) -> Result<(), String> {
             ));
         }
 
+        if is_sensitive_path(ref_path) {
+            return Err(format!(
+                "Security Policy Violation: Referenced evidence path '{}' is a secret or sensitive file.",
+                entry.file_path
+            ));
+        }
+
         // Check directory traversal escaping repo root
         let target_path = current_dir.join(ref_path);
         let canonical_target = match target_path.canonicalize() {
@@ -1855,15 +1876,9 @@ fn handle_state_verify(path_str: &str) -> Result<(), String> {
             ));
         }
 
-        // Check secret files
-        let ref_name = ref_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-        if ref_name == ".env"
-            || ref_name.starts_with(".env.")
-            || ref_name.ends_with(".key")
-            || ref_name.ends_with(".pem")
-        {
+        if is_sensitive_path(&canonical_target) {
             return Err(format!(
-                "Security Policy Violation: Referenced path '{}' is a secret file.",
+                "Security Policy Violation: Referenced path '{}' is a secret or sensitive file.",
                 entry.file_path
             ));
         }
@@ -1901,6 +1916,13 @@ fn handle_state_report(path_str: &str) -> Result<(), String> {
         );
     }
 
+    if is_sensitive_path(path) {
+        return Err(
+            "Security Policy Violation: Accessing secrets or sensitive files is forbidden."
+                .to_string(),
+        );
+    }
+
     let current_dir = std::env::current_dir()
         .map_err(|e| format!("failed to get current working directory: {e}"))?;
     let canonical_current_dir = current_dir
@@ -1918,6 +1940,13 @@ fn handle_state_report(path_str: &str) -> Result<(), String> {
     if !canonical_path.starts_with(&canonical_current_dir) {
         return Err(
             "Security Policy Violation: Target path escapes the repository boundary.".to_string(),
+        );
+    }
+
+    if is_sensitive_path(&canonical_path) {
+        return Err(
+            "Security Policy Violation: Accessing secrets or sensitive files is forbidden."
+                .to_string(),
         );
     }
 
@@ -2706,6 +2735,107 @@ mod tests {
         // 6. Test stable report printing
         let report_res = handle_state_report(temp_state_file);
         assert!(report_res.is_ok());
+
+        // Clean up
+        let _ = std::fs::remove_file(temp_state_file);
+    }
+
+    #[test]
+    fn test_agent_state_secrets_rejection() {
+        use super::{handle_state_capture, handle_state_report, handle_state_verify, AgentState};
+
+        let temp_state_file = ".comptext/agent_state.latest.json";
+        let _ = std::fs::remove_file(temp_state_file);
+
+        // 1. Test state verify rejects secrets in its own path
+        let verify_env_res = handle_state_verify(".env");
+        assert!(verify_env_res.is_err());
+        assert!(verify_env_res
+            .unwrap_err()
+            .contains("Accessing secrets or sensitive files"));
+
+        let verify_git_res = handle_state_verify(".git/config");
+        assert!(verify_git_res.is_err());
+        assert!(verify_git_res
+            .unwrap_err()
+            .contains("Accessing secrets or sensitive files"));
+
+        // 2. Test state report rejects secrets in its own path
+        let report_env_res = handle_state_report(".env");
+        assert!(report_env_res.is_err());
+        assert!(report_env_res
+            .unwrap_err()
+            .contains("Accessing secrets or sensitive files"));
+
+        let report_git_res = handle_state_report(".git/config");
+        assert!(report_git_res.is_err());
+        assert!(report_git_res
+            .unwrap_err()
+            .contains("Accessing secrets or sensitive files"));
+
+        // 3. Test state verify rejects referenced evidence paths containing secrets
+        let mock_state_with_secret = r#"{
+            "schema_version": "0.1",
+            "task": "Test secret verification rejection",
+            "timestamp": "2026-06-05T13:39:50Z",
+            "evidence": [
+                {
+                    "id": "env_file",
+                    "file_path": ".env",
+                    "sha256": null,
+                    "status": "unverified",
+                    "failure_label": null
+                }
+            ]
+        }"#;
+
+        std::fs::create_dir_all(".comptext").unwrap();
+        std::fs::write(temp_state_file, mock_state_with_secret).unwrap();
+
+        let verify_ref_res = handle_state_verify(temp_state_file);
+        assert!(verify_ref_res.is_err());
+        assert!(verify_ref_res
+            .unwrap_err()
+            .contains("is a secret or sensitive file"));
+
+        let mock_state_with_git_ref = r#"{
+            "schema_version": "0.1",
+            "task": "Test sensitive subdir verification rejection",
+            "timestamp": "2026-06-05T13:39:50Z",
+            "evidence": [
+                {
+                    "id": "git_ref",
+                    "file_path": ".git/config",
+                    "sha256": null,
+                    "status": "unverified",
+                    "failure_label": null
+                }
+            ]
+        }"#;
+        std::fs::write(temp_state_file, mock_state_with_git_ref).unwrap();
+        let verify_git_ref_res = handle_state_verify(temp_state_file);
+        assert!(verify_git_ref_res.is_err());
+        assert!(verify_git_ref_res
+            .unwrap_err()
+            .contains("is a secret or sensitive file"));
+
+        // 4. Test state capture does not capture any sensitive paths
+        let capture_res = handle_state_capture("Rejection test task");
+        assert!(capture_res.is_ok());
+
+        let captured_content = std::fs::read_to_string(temp_state_file).unwrap();
+        let state: AgentState = serde_json::from_str(&captured_content).unwrap();
+        for entry in state.evidence {
+            let path = std::path::Path::new(&entry.file_path);
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            assert_ne!(name, ".env");
+            assert!(!name.starts_with(".env."));
+            assert_ne!(name, "id_rsa");
+            assert_ne!(name, "id_ed25519");
+            assert!(!entry.file_path.contains(".git"));
+            assert!(!entry.file_path.contains(".ssh"));
+            assert!(!entry.file_path.contains(".aws"));
+        }
 
         // Clean up
         let _ = std::fs::remove_file(temp_state_file);

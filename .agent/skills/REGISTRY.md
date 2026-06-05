@@ -60,7 +60,7 @@ This document serves as the local registry index for all authorized skills in th
 - **Description**: Audits release checklist, compiles release target binary, and verifies git hygiene.
 - **Intended Use**: Checking release readiness checklists, updating version metadata, and compiling release target binary.
 - **Allowed Scope**: Compiling release build (`cargo build --release`), updating version metadata in Cargo.toml, editing changelogs.
-- **Forbidden Scope**: Committing temporary `.comptext/` cache directories, force pushes.
+- **Forbidden Scope**: No Git tag creation, release publishing, package publishing, committing temporary `.comptext/` cache directories, or force pushes.
 - **Validation Commands**: `cargo build --release`, `git diff --exit-code`
 - **Local SHA-256 Checksum**: `7C5E20A372E08CB9BF7C38BD3EF0B8A8998298C896FB77FA4EB34D0C7DA76CCA`
 

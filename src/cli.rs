@@ -1668,6 +1668,9 @@ fn is_sensitive_path(path: &std::path::Path) -> bool {
             || file_name == ".git"
             || file_name == ".ssh"
             || file_name == ".aws"
+            || file_name == ".netrc"
+            || file_name == ".git-credentials"
+            || file_name == ".envrc"
         {
             return true;
         }
@@ -1675,7 +1678,13 @@ fn is_sensitive_path(path: &std::path::Path) -> bool {
     for component in path.components() {
         if let std::path::Component::Normal(os_str) = component {
             if let Some(s) = os_str.to_str() {
-                if s == ".git" || s == ".ssh" || s == ".aws" {
+                if s == ".git"
+                    || s == ".ssh"
+                    || s == ".aws"
+                    || s == ".netrc"
+                    || s == ".git-credentials"
+                    || s == ".envrc"
+                {
                     return true;
                 }
             }
@@ -1745,6 +1754,9 @@ fn handle_state_capture(task: &str) -> Result<(), String> {
 
     let mut evidence = Vec::new();
     collect_files_recursive(&current_dir, &current_dir, &mut evidence)?;
+
+    // Sort evidence by id, then by file_path to guarantee stable/deterministic order
+    evidence.sort_by(|a, b| a.id.cmp(&b.id).then_with(|| a.file_path.cmp(&b.file_path)));
 
     let state = AgentState {
         schema_version: "0.1".to_string(),
@@ -2760,6 +2772,24 @@ mod tests {
             .unwrap_err()
             .contains("Accessing secrets or sensitive files"));
 
+        let verify_netrc_res = handle_state_verify(".netrc");
+        assert!(verify_netrc_res.is_err());
+        assert!(verify_netrc_res
+            .unwrap_err()
+            .contains("Accessing secrets or sensitive files"));
+
+        let verify_gitcreds_res = handle_state_verify(".git-credentials");
+        assert!(verify_gitcreds_res.is_err());
+        assert!(verify_gitcreds_res
+            .unwrap_err()
+            .contains("Accessing secrets or sensitive files"));
+
+        let verify_envrc_res = handle_state_verify(".envrc");
+        assert!(verify_envrc_res.is_err());
+        assert!(verify_envrc_res
+            .unwrap_err()
+            .contains("Accessing secrets or sensitive files"));
+
         // 2. Test state report rejects secrets in its own path
         let report_env_res = handle_state_report(".env");
         assert!(report_env_res.is_err());
@@ -2825,7 +2855,7 @@ mod tests {
 
         let captured_content = std::fs::read_to_string(temp_state_file).unwrap();
         let state: AgentState = serde_json::from_str(&captured_content).unwrap();
-        for entry in state.evidence {
+        for entry in &state.evidence {
             let path = std::path::Path::new(&entry.file_path);
             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
             assert_ne!(name, ".env");
@@ -2835,6 +2865,32 @@ mod tests {
             assert!(!entry.file_path.contains(".git"));
             assert!(!entry.file_path.contains(".ssh"));
             assert!(!entry.file_path.contains(".aws"));
+            assert_ne!(name, ".netrc");
+            assert_ne!(name, ".git-credentials");
+            assert_ne!(name, ".envrc");
+        }
+
+        // Verify evidence entries are sorted deterministically by id, then file_path
+        let mut prev_id = String::new();
+        let mut prev_file_path = String::new();
+        for entry in &state.evidence {
+            if entry.id == prev_id {
+                assert!(
+                    entry.file_path >= prev_file_path,
+                    "Paths out of order: '{}' vs '{}'",
+                    prev_file_path,
+                    entry.file_path
+                );
+            } else {
+                assert!(
+                    entry.id > prev_id,
+                    "IDs out of order: '{}' vs '{}'",
+                    prev_id,
+                    entry.id
+                );
+            }
+            prev_id = entry.id.clone();
+            prev_file_path = entry.file_path.clone();
         }
 
         // Clean up

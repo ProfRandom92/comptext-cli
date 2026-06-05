@@ -32,5 +32,6 @@
 - **POLICY_DECISIONS**:
   - The local control plane is implemented strictly offline-only with no network connection.
   - The transient `.comptext` directory is ignored by file collection to prevent concurrent test race conditions.
+  - Agent state capture evidence is deterministically sorted by ID and file path to guarantee a stable artifact output.
 - **RISKS**: Local checksums are supplementary change-detection metadata and do not represent unsupported assurance claims.
 - **NEXT**: Phase 16 Review-Gate closeout

@@ -21,7 +21,7 @@ CompText CLI is an experimental terminal context client for building determinist
 ```text
 CURRENT_PHASE: 17
 CURRENT_TASK: Antigravity Plugin Bundle Skeleton
-LAST_GREEN_PHASE: 17
+LAST_GREEN_PHASE: 16
 STATUS: REVIEW-GATE
 NEXT_ALLOWED_ACTION: Await review gate confirmation
 ```

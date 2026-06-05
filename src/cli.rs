@@ -667,88 +667,34 @@ fn parse(argv: &[String]) -> Result<Command, String> {
                         action: None,
                     })
                 }
-                "skills" => {
+                "skills" | "agents" | "hooks" | "plugin" => {
+                    let expected_action = match sub {
+                        "skills" => "validate",
+                        "agents" => "export",
+                        "hooks" => "audit",
+                        "plugin" => "package",
+                        _ => unreachable!(),
+                    };
                     if argv.len() < 3 {
-                        return Err("missing action for 'antigravity skills'. Usage: ctxt antigravity skills validate".to_string());
-                    }
-                    if argv[2] != "validate" {
                         return Err(format!(
-                            "unsupported action '{}' for 'antigravity skills'",
+                            "missing action for 'antigravity {sub}'. Usage: ctxt antigravity {sub} {expected_action}"
+                        ));
+                    }
+                    if argv[2] != expected_action {
+                        return Err(format!(
+                            "unsupported action '{}' for 'antigravity {sub}'",
                             argv[2]
                         ));
                     }
                     if argv.len() > 3 {
                         return Err(format!(
-                            "unexpected argument '{}' for 'antigravity skills validate'",
+                            "unexpected argument '{}' for 'antigravity {sub} {expected_action}'",
                             argv[3]
                         ));
                     }
                     Ok(Command::Antigravity {
-                        subcommand: "skills".to_string(),
-                        action: Some("validate".to_string()),
-                    })
-                }
-                "agents" => {
-                    if argv.len() < 3 {
-                        return Err("missing action for 'antigravity agents'. Usage: ctxt antigravity agents export".to_string());
-                    }
-                    if argv[2] != "export" {
-                        return Err(format!(
-                            "unsupported action '{}' for 'antigravity agents'",
-                            argv[2]
-                        ));
-                    }
-                    if argv.len() > 3 {
-                        return Err(format!(
-                            "unexpected argument '{}' for 'antigravity agents export'",
-                            argv[3]
-                        ));
-                    }
-                    Ok(Command::Antigravity {
-                        subcommand: "agents".to_string(),
-                        action: Some("export".to_string()),
-                    })
-                }
-                "hooks" => {
-                    if argv.len() < 3 {
-                        return Err("missing action for 'antigravity hooks'. Usage: ctxt antigravity hooks audit".to_string());
-                    }
-                    if argv[2] != "audit" {
-                        return Err(format!(
-                            "unsupported action '{}' for 'antigravity hooks'",
-                            argv[2]
-                        ));
-                    }
-                    if argv.len() > 3 {
-                        return Err(format!(
-                            "unexpected argument '{}' for 'antigravity hooks audit'",
-                            argv[3]
-                        ));
-                    }
-                    Ok(Command::Antigravity {
-                        subcommand: "hooks".to_string(),
-                        action: Some("audit".to_string()),
-                    })
-                }
-                "plugin" => {
-                    if argv.len() < 3 {
-                        return Err("missing action for 'antigravity plugin'. Usage: ctxt antigravity plugin package".to_string());
-                    }
-                    if argv[2] != "package" {
-                        return Err(format!(
-                            "unsupported action '{}' for 'antigravity plugin'",
-                            argv[2]
-                        ));
-                    }
-                    if argv.len() > 3 {
-                        return Err(format!(
-                            "unexpected argument '{}' for 'antigravity plugin package'",
-                            argv[3]
-                        ));
-                    }
-                    Ok(Command::Antigravity {
-                        subcommand: "plugin".to_string(),
-                        action: Some("package".to_string()),
+                        subcommand: sub.to_string(),
+                        action: Some(expected_action.to_string()),
                     })
                 }
                 other => Err(format!("unsupported antigravity subcommand '{}'", other)),

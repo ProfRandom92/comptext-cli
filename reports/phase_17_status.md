@@ -1,7 +1,7 @@
 # Phase 17 Status Report
 
 - **PHASE**: Phase 17 Antigravity Plugin Bundle
-- **STATUS**: success
+- **STATUS**: local-success / review-gate
 - **FILES_CHANGED**:
   - `.agent/skills/ctxt-phase-17-antigravity-plugin-bundle/SKILL.md`
   - `PROJEKT.md`
@@ -20,8 +20,10 @@
   - `templates/antigravity/skills/sample_skill/SKILL.md`
   - `tests/cli_smoke.rs`
 - **COMMANDS_RUN**:
+  - `cargo fmt --all --check`
   - `cargo check`
   - `cargo test`
+  - `cargo clippy -- -D warnings`
 - **VALIDATION**: All 34 unit tests and 9 integration tests passed. Compilation clean.
 - **ARTIFACTS**:
   - `templates/antigravity/plugin_manifest.json`
@@ -35,7 +37,11 @@
   - `templates/antigravity/README.md`
   - `docs/ANTIGRAVITY_PLUGIN_BUNDLE.md`
   - `.agent/skills/ctxt-phase-17-antigravity-plugin-bundle/SKILL.md`
-- **GIT**: Switched to main and checked out local branch `phase-17-antigravity-plugin-bundle`. Local commit prepared.
+- **GIT**:
+  - local commits prepared
+  - remote branch pushed
+  - PR #3 opened
+  - merge not performed
 - **NETWORK**: offline-only
 - **SECRETS**: No credentials accessed or exposed.
 - **POLICY_DECISIONS**: All design boundaries respected (no live runtime hooks, advisory-only subagents, MCP treated as untrusted, no LLM judge).

@@ -88,7 +88,7 @@ CompText is for developers who want AI-assisted workflows with stronger boundari
 Binary: ctxt
 Current phase: Phase 17
 Current task: Antigravity Plugin Bundle Skeleton
-Last green phase: Phase 17
+Last green phase: Phase 16
 Status: REVIEW-GATE
 Next allowed action: Await review gate confirmation
 ```

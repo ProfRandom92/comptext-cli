@@ -20,16 +20,16 @@ CompText CLI is an experimental terminal context client for building determinist
 ### Current State
 ```text
 CURRENT_PHASE: 15
-CURRENT_TASK: Cryptographic Provenance Engine
-LAST_GREEN_PHASE: 15
-STATUS: complete
+CURRENT_TASK: Cryptographic Provenance Engine Review-Gate cleanup
+LAST_GREEN_PHASE: 14
+STATUS: blocked
 ```
 
 ### Autonomy Contract
 - **Allowed Modifications**: May edit source code (`src/**`), tests (`tests/**`), docs (`docs/**`), skills (`.agent/skills/**`, `.agents/skills/**`), prompts (`prompts/**`), and configurations (`Cargo.toml`, `comptext.example.toml`).
 - **Allowed Commands**: May run local compilation, lint checks, tests, and formatting validation.
 - **Error Remediation**: May automatically modify code to fix local build, format, test, or clippy failures.
-- **Phase Transition**: May commit and push changes after all validation passes for a green phase, and automatically proceed to the next phase queue item.
+- **Phase Transition**: May commit and push changes after all validation passes for a green phase, and await Review-Gate feedback before transitioning to any new phase.
 
 ### Forbidden Rules
 - **No Private Keys / Secrets**: Forbidden to read or parse `.env`, `.env.*`, `.netrc`, `.git-credentials`, private keys (`*.key`, `*.pem`), or credentials.
@@ -89,7 +89,7 @@ git push
 | **Phase 12** | Antigravity CLI Governance & Token Economy | Antigravity governance docs, token economy rules, skill/hook/permission target architecture | **COMPLETE** |
 | **Phase 13** | Skill Bundle Registry | Local skill bundle registry and starter skill templates | **COMPLETE** |
 | **Phase 14** | Hook/Permission Integration | Hook boundaries, dynamic run approvals | **COMPLETE** |
-| **Phase 15** | Cryptographic Provenance Engine | Signed evidence trail generation and cryptographic integrity seals | **COMPLETE** |
+| **Phase 15** | Cryptographic Provenance Engine | local SHA-256 provenance manifests | **BLOCKED** |
 
 ---
 

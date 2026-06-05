@@ -9,7 +9,7 @@ This document outlines the design and local verification guidelines for the Comp
 CompText utilizes local provenance manifests to track artifact changes and link them back to their origin task context.
 
 - **Schema Definition**: Provenance manifests are stored as JSON files with the `.provenance.json` extension alongside their matching artifact.
-- **Canonical Hash**: Checksums are computed entirely offline using a self-contained SHA-256 algorithm.
+- **Raw file content SHA-256**: Checksums are computed entirely offline using a self-contained SHA-256 algorithm.
 - **Parent Link**: Connects the artifact to its preceding parent artifact or task description to establish a local chain of custody.
 
 ### Schema Shape

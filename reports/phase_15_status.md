@@ -2,14 +2,14 @@
 
 ## Status Summary
 - **Phase**: Phase 15: Cryptographic Provenance Engine
-- **Status**: success
+- **Status**: blocked
 - **Date**: 2026-06-05
 
 ---
 
 ## Metadata details
 - **PHASE**: Phase 15: Cryptographic Provenance Engine
-- **STATUS**: success
+- **STATUS**: blocked
 - **FILES_CHANGED**:
   - `PROJEKT.md`
   - `README.md`
@@ -41,7 +41,7 @@
   - Pure-Rust algorithm: Built a self-contained SHA-256 implementation to verify offline compatibility, avoiding network socket cargo fetches.
   - Review-Gate remain authoritative: Provenance manifests serve as supplementary change-detection metadata rather than formal security proofs.
 - **RISKS**: Checksums are used solely as local integrity flags and do not provide absolute certification.
-- **NEXT**: Roadmap Completed
+- **NEXT**: Review-Gate decided transitions
 
 ---
 

@@ -1429,12 +1429,64 @@ pub fn sha256_hex(data: &[u8]) -> String {
 
 fn handle_verify(file_path: &str, parent: Option<&str>) -> Result<(), String> {
     let path = std::path::Path::new(file_path);
+
+    // 1. Rejects absolute paths
+    if path.is_absolute() {
+        return Err(
+            "Security Policy Violation: Absolute paths are forbidden in verify command."
+                .to_string(),
+        );
+    }
+
+    // 2. Reject directory traversal escaping the repository boundary
+    let current_dir = std::env::current_dir()
+        .map_err(|e| format!("failed to get current working directory: {e}"))?;
+
+    let canonical_current_dir = current_dir
+        .canonicalize()
+        .map_err(|e| format!("failed to canonicalize current directory: {e}"))?;
+
     if !path.exists() {
         return Err(format!("File '{}' does not exist.", file_path));
     }
 
-    let content = std::fs::read(path)
-        .map_err(|e| format!("failed to read file '{}': {e}", path.display()))?;
+    let canonical_path = path
+        .canonicalize()
+        .map_err(|e| format!("failed to canonicalize file path '{}': {e}", file_path))?;
+
+    if !canonical_path.starts_with(&canonical_current_dir) {
+        return Err(
+            "Security Policy Violation: Target path escapes the repository boundary.".to_string(),
+        );
+    }
+
+    // 3. Reject forbidden files and directories: .env, .env.*, *.key, *.pem, .git/, .ssh/, .aws/, id_rsa, id_ed25519
+    let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    if file_name == ".env"
+        || file_name.starts_with(".env.")
+        || file_name.ends_with(".key")
+        || file_name.ends_with(".pem")
+        || file_name == "id_rsa"
+        || file_name == "id_ed25519"
+    {
+        return Err(
+            "Security Policy Violation: Accessing secrets or configuration files is forbidden."
+                .to_string(),
+        );
+    }
+
+    for component in canonical_path.components() {
+        if let std::path::Component::Normal(os_str) = component {
+            if let Some(s) = os_str.to_str() {
+                if s == ".git" || s == ".ssh" || s == ".aws" {
+                    return Err("Security Policy Violation: Accessing sensitive directories (.git, .ssh, .aws) is forbidden.".to_string());
+                }
+            }
+        }
+    }
+
+    let content = std::fs::read(&canonical_path)
+        .map_err(|e| format!("failed to read file '{}': {e}", canonical_path.display()))?;
 
     let computed_hash = sha256_hex(&content);
 
@@ -2030,35 +2082,87 @@ mod tests {
     }
 
     #[test]
+    fn test_sha256_standard_vectors() {
+        use super::sha256_hex;
+        assert_eq!(
+            sha256_hex(b""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+        assert_eq!(
+            sha256_hex(b"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"),
+            "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
+        );
+    }
+
+    #[test]
     fn test_provenance_verification() {
         use super::handle_verify;
-        let temp_dir = std::env::temp_dir();
-        let test_file_path = temp_dir.join("test_provenance_artifact.txt");
-        let manifest_path = temp_dir.join("test_provenance_artifact.txt.provenance.json");
+
+        let test_file_path = "test_provenance_artifact_temp.txt";
+        let manifest_path = "test_provenance_artifact_temp.txt.provenance.json";
 
         // Clean up any leftovers
-        let _ = std::fs::remove_file(&test_file_path);
-        let _ = std::fs::remove_file(&manifest_path);
+        let _ = std::fs::remove_file(test_file_path);
+        let _ = std::fs::remove_file(manifest_path);
 
         // 1. Write file
-        std::fs::write(&test_file_path, "provenance test contents").unwrap();
+        std::fs::write(test_file_path, "provenance test contents").unwrap();
 
         // 2. Generate manifest
-        let gen_res = handle_verify(&test_file_path.to_string_lossy(), Some("parent_task_123"));
+        let gen_res = handle_verify(test_file_path, Some("parent_task_123"));
         assert!(gen_res.is_ok());
-        assert!(manifest_path.exists());
+        assert!(std::path::Path::new(manifest_path).exists());
 
         // 3. Verify manifest
-        let verify_res = handle_verify(&test_file_path.to_string_lossy(), None);
+        let verify_res = handle_verify(test_file_path, None);
         assert!(verify_res.is_ok());
 
         // 4. Modify file and verify failure
-        std::fs::write(&test_file_path, "provenance test contents MUTATED").unwrap();
-        let verify_fail_res = handle_verify(&test_file_path.to_string_lossy(), None);
+        std::fs::write(test_file_path, "provenance test contents MUTATED").unwrap();
+        let verify_fail_res = handle_verify(test_file_path, None);
         assert!(verify_fail_res.is_err());
 
+        // 5. Test path safety constraints
+        // Rejects absolute path
+        let test_abs_path = if cfg!(windows) {
+            "C:\\some\\abs\\path"
+        } else {
+            "/some/abs/path"
+        };
+        let abs_res = handle_verify(test_abs_path, None);
+        assert!(abs_res.is_err());
+        assert!(abs_res
+            .unwrap_err()
+            .contains("Absolute paths are forbidden"));
+
+        // Rejects secret files (.env)
+        // Note: we don't write it, we just check validation rejection logic
+        // But since verify check requires file to exist, let's check .env.example or create .env.temp.key
+        std::fs::write("test_prov.key", "dummy").unwrap();
+        let key_res = handle_verify("test_prov.key", None);
+        assert!(key_res.is_err());
+        assert!(key_res
+            .unwrap_err()
+            .contains("Accessing secrets or configuration files is forbidden"));
+        let _ = std::fs::remove_file("test_prov.key");
+
+        // Rejects sensitive directory (.git/config)
+        let git_res = handle_verify(".git/config", None);
+        assert!(git_res.is_err());
+        assert!(git_res
+            .unwrap_err()
+            .contains("Accessing sensitive directories"));
+
+        // Rejects directory traversal
+        let traverse_res = handle_verify("../outside.txt", None);
+        assert!(traverse_res.is_err());
+
         // Clean up
-        let _ = std::fs::remove_file(&test_file_path);
-        let _ = std::fs::remove_file(&manifest_path);
+        let _ = std::fs::remove_file(test_file_path);
+        let _ = std::fs::remove_file(manifest_path);
     }
 }

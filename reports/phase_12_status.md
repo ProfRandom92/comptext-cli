@@ -55,5 +55,5 @@
 1. **Operating Model**: Created structural guidelines clarifying the relationship between Antigravity as the agent execution surface and CompText CLI as the policy control plane.
 2. **Token Economy**: Defined rules including read-first minimalism, one-skill-at-a-time loading, model effort selection logic, and skill-based prompt referencing.
 3. **Skill registry**: Established standardized layout directives and trigger rules for skill files. Added starter skill `.agent/skills/ctxt-antigravity-governance/SKILL.md`.
-4. **Hook Governance**: Outlined interceptor target endpoints enforcing security boundaries (blocking `.env`, network, and out-of-bounds writes).
+4. **Hook Governance**: Outlined interceptor target endpoints intended to support future security enforcement (blocking `.env`, network, and out-of-bounds writes).
 5. **Permissions & Subagents**: Positioned permissions as defense-in-depth and restricted subagents to specialized read-only audit roles.

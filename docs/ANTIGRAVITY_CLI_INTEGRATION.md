@@ -26,7 +26,7 @@ flowchart TD
     agent[Antigravity Orchestrator]
     ctxt[CompText CLI]
     repo[(Repository Codebase)]
-    policy[Policy Gate / Hook]
+    policy[Policy Gate / Target Hook]
 
     agent -->|1. context inspect| ctxt
     ctxt -->|2. harvest & redact| repo
@@ -36,8 +36,8 @@ flowchart TD
     agent -->|6. invoke reviewer| subagent
     subagent -->|7. audit proposal| prop
     agent -->|8. apply gate| ctxt
-    ctxt -->|9. policy hook validation| policy
-    policy -->|10. sandboxed write execution| repo
+    ctxt -->|9. planned policy target| policy
+    policy -->|10. validated write execution| repo
 ```
 
 ---

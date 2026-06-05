@@ -12,7 +12,7 @@ Permissions do not serve as the primary policy compiler. Instead, they act as lo
 2. **Hook Interceptors (`docs/HOOK_GOVERNANCE.md`)**: Contextual software gates executing within the workspace.
 3. **Permissions Model**: Orchestrator-enforced runtime restrictions acting as a defense-in-depth policy layer.
 
-If a hook fails or an agent attempts to bypass logical constraints, the orchestrator's runtime permissions model acts as a secondary layer to block unauthorized actions.
+In the target architecture, if a hook fails or an agent attempts to bypass logical constraints, the orchestrator's runtime permissions model is intended to act as a secondary layer to block unauthorized actions. Note that this runtime enforcement represents a design target and is not a Rust-level guarantee.
 
 ---
 
@@ -29,4 +29,4 @@ The target host policy baseline for the runtime environment is partitioned into 
 
 ## 3. Explicit Phase Approval
 
-If a task requires a restricted operation (e.g., querying a local Ollama socket), the permissions must be upgraded using explicit, phase-scoped approvals in the task definition. Once the phase transitions, permissions automatically downgrade back to the default-deny baseline.
+If a task requires a restricted operation (e.g., querying a local Ollama socket), the host/orchestrator permission profile should be explicitly approved using phase-scoped configurations in the task definition. Once the phase transitions, the intended host policy should return to the default-deny baseline. This configuration acts as orchestrator-level governance, not a Rust-level compilation check.

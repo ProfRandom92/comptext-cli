@@ -105,6 +105,11 @@ enum Command {
         task: Option<String>,
         path: Option<String>,
     },
+    Exec {
+        subcommand: String,
+        label: Option<String>,
+        path: Option<String>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -282,6 +287,24 @@ where
                 "verify" => handle_state_verify(path.as_deref().unwrap_or("")),
                 "report" => handle_state_report(path.as_deref().unwrap_or("")),
                 other => Err(format!("unknown state subcommand '{other}'")),
+            };
+            match res {
+                Ok(_) => 0,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    1
+                }
+            }
+        }
+        Ok(Command::Exec {
+            subcommand,
+            label,
+            path,
+        }) => {
+            let res = match subcommand.as_str() {
+                "log" => handle_exec_log(label.as_deref().unwrap_or("")),
+                "verify" => handle_exec_verify(path.as_deref().unwrap_or("")),
+                other => Err(format!("unknown exec subcommand '{other}'")),
             };
             match res {
                 Ok(_) => 0,
@@ -603,6 +626,58 @@ fn parse(argv: &[String]) -> Result<Command, String> {
                 other => Err(format!("unsupported state subcommand '{other}'")),
             }
         }
+        "exec" => {
+            if argv.len() < 2 {
+                return Err(
+                    "missing subcommand for 'exec'. Usage: ctxt exec <log|verify> [options]"
+                        .to_string(),
+                );
+            }
+            let sub = argv[1].as_str();
+            match sub {
+                "log" => {
+                    let mut label = None;
+                    let mut i = 2;
+                    while i < argv.len() {
+                        match argv[i].as_str() {
+                            "--label" => {
+                                if i + 1 >= argv.len() {
+                                    return Err("missing label after --label".to_string());
+                                }
+                                label = Some(argv[i + 1].clone());
+                                i += 2;
+                            }
+                            other => {
+                                return Err(format!("unexpected option '{other}' for 'exec log'"));
+                            }
+                        }
+                    }
+                    if label.is_none() {
+                        return Err("missing required parameter --label for 'exec log'".to_string());
+                    }
+                    Ok(Command::Exec {
+                        subcommand: "log".to_string(),
+                        label,
+                        path: None,
+                    })
+                }
+                "verify" => {
+                    if argv.len() != 3 {
+                        return Err("Usage: ctxt exec verify <path>".to_string());
+                    }
+                    let path_val = argv[2].clone();
+                    if path_val.starts_with('-') {
+                        return Err(format!("unexpected option '{path_val}' for 'exec verify'"));
+                    }
+                    Ok(Command::Exec {
+                        subcommand: "verify".to_string(),
+                        label: None,
+                        path: Some(path_val),
+                    })
+                }
+                other => Err(format!("unsupported exec subcommand '{other}'")),
+            }
+        }
         "benchmark" => {
             let mut provider = None;
             let mut task = String::new();
@@ -666,6 +741,7 @@ COMMANDS:\n\
     benchmark           Run deterministic local model/context benchmarks\n\
     verify              Verify or generate local provenance manifest\n\
     state               Manage and verify agent state contracts\n\
+    exec                Log and verify bounded execution events\n\
 \n\
 SAFETY DEFAULTS:\n\
     network_default=deny\n\
@@ -1989,6 +2065,174 @@ fn handle_state_report(path_str: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct ExecutionLog {
+    pub schema_version: String,
+    pub events: Vec<ExecutionEvent>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct ExecutionEvent {
+    pub label: ExecutionLabel,
+    pub timestamp: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ExecutionLabel {
+    CommandStarted,
+    CommandFinished,
+    ValidationPassed,
+    ValidationFailed,
+    ReviewGateRequired,
+    PolicyBlocked,
+}
+
+impl std::str::FromStr for ExecutionLabel {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "CommandStarted" => Ok(ExecutionLabel::CommandStarted),
+            "CommandFinished" => Ok(ExecutionLabel::CommandFinished),
+            "ValidationPassed" => Ok(ExecutionLabel::ValidationPassed),
+            "ValidationFailed" => Ok(ExecutionLabel::ValidationFailed),
+            "ReviewGateRequired" => Ok(ExecutionLabel::ReviewGateRequired),
+            "PolicyBlocked" => Ok(ExecutionLabel::PolicyBlocked),
+            other => Err(format!("Invalid execution event label: {}", other)),
+        }
+    }
+}
+
+fn handle_exec_log(label_str: &str) -> Result<(), String> {
+    let label: ExecutionLabel = label_str.parse()?;
+
+    let log_path = ".comptext/execution_log.latest.json";
+    let path = std::path::Path::new(log_path);
+
+    // Read existing log or start a new one
+    let mut log = if path.exists() {
+        if is_sensitive_path(path) {
+            return Err(
+                "Security Policy Violation: Accessing sensitive paths is forbidden.".to_string(),
+            );
+        }
+        let content = std::fs::read_to_string(path)
+            .map_err(|e| format!("failed to read execution log: {e}"))?;
+        serde_json::from_str(&content).map_err(|e| format!("failed to parse execution log: {e}"))?
+    } else {
+        std::fs::create_dir_all(".comptext")
+            .map_err(|e| format!("failed to create .comptext directory: {e}"))?;
+        ExecutionLog {
+            schema_version: "0.1".to_string(),
+            events: Vec::new(),
+        }
+    };
+
+    // Verify schema_version
+    if log.schema_version != "0.1" {
+        return Err("Verification failed: Invalid schema version. Expected '0.1'.".to_string());
+    }
+
+    // Append new event
+    let new_event = ExecutionEvent {
+        label,
+        timestamp: "2026-06-05T14:33:23Z".to_string(),
+    };
+    log.events.push(new_event);
+
+    // Deterministic sorting
+    log.events.sort_by(|a, b| {
+        a.timestamp
+            .cmp(&b.timestamp)
+            .then_with(|| a.label.cmp(&b.label))
+    });
+
+    let json_content = serde_json::to_string_pretty(&log)
+        .map_err(|e| format!("failed to serialize execution log: {e}"))?;
+
+    std::fs::write(path, json_content)
+        .map_err(|e| format!("failed to write execution log: {e}"))?;
+
+    println!("Execution event logged: {:?}", label);
+    Ok(())
+}
+
+fn handle_exec_verify(path_str: &str) -> Result<(), String> {
+    let path = std::path::Path::new(path_str);
+
+    // Path Safety Checks - absolute path rejection
+    if path.is_absolute() {
+        return Err(
+            "Security Policy Violation: Absolute paths are forbidden in execution verify."
+                .to_string(),
+        );
+    }
+
+    // Sensitive path rejection before reading
+    if is_sensitive_path(path) {
+        return Err(
+            "Security Policy Violation: Accessing secrets or sensitive files is forbidden."
+                .to_string(),
+        );
+    }
+
+    let current_dir = std::env::current_dir()
+        .map_err(|e| format!("failed to get current working directory: {e}"))?;
+    let canonical_current_dir = current_dir
+        .canonicalize()
+        .map_err(|e| format!("failed to canonicalize current directory: {e}"))?;
+
+    if !path.exists() {
+        return Err(format!("File '{}' does not exist.", path_str));
+    }
+
+    let canonical_path = path
+        .canonicalize()
+        .map_err(|e| format!("failed to canonicalize path '{}': {e}", path_str))?;
+
+    if !canonical_path.starts_with(&canonical_current_dir) {
+        return Err(
+            "Security Policy Violation: Target path escapes the repository boundary.".to_string(),
+        );
+    }
+
+    if is_sensitive_path(&canonical_path) {
+        return Err(
+            "Security Policy Violation: Accessing secrets or sensitive files is forbidden."
+                .to_string(),
+        );
+    }
+
+    let content = std::fs::read_to_string(&canonical_path)
+        .map_err(|e| format!("failed to read execution log: {e}"))?;
+
+    let log: ExecutionLog = serde_json::from_str(&content)
+        .map_err(|e| format!("failed to parse ExecutionLog JSON: {e}"))?;
+
+    // 1. schema_version == "0.1"
+    if log.schema_version != "0.1" {
+        return Err("Verification failed: Invalid schema version. Expected '0.1'.".to_string());
+    }
+
+    // 2. Deterministic ordering verification
+    let mut prev: Option<&ExecutionEvent> = None;
+    for event in &log.events {
+        if let Some(p) = prev {
+            let p_key = (&p.timestamp, p.label);
+            let e_key = (&event.timestamp, event.label);
+            if p_key > e_key {
+                return Err(
+                    "Verification failed: Events are not deterministically ordered.".to_string(),
+                );
+            }
+        }
+        prev = Some(event);
+    }
+
+    println!("Execution log verification successful.");
+    Ok(())
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BenchmarkArtifact {
     pub schema_version: String,
@@ -2895,5 +3139,110 @@ mod tests {
 
         // Clean up
         let _ = std::fs::remove_file(temp_state_file);
+    }
+
+    #[test]
+    fn test_exec_monitoring_parsing() {
+        use super::{parse, Command};
+
+        assert_eq!(
+            parse(&s(&["exec", "log", "--label", "CommandStarted"])),
+            Ok(Command::Exec {
+                subcommand: "log".to_string(),
+                label: Some("CommandStarted".to_string()),
+                path: None,
+            })
+        );
+
+        assert_eq!(
+            parse(&s(&["exec", "verify", "path/to/log.json"])),
+            Ok(Command::Exec {
+                subcommand: "verify".to_string(),
+                label: None,
+                path: Some("path/to/log.json".to_string()),
+            })
+        );
+
+        assert!(parse(&s(&["exec"])).is_err());
+        assert!(parse(&s(&["exec", "log"])).is_err());
+        assert!(parse(&s(&["exec", "verify"])).is_err());
+        assert!(parse(&s(&["exec", "invalid"])).is_err());
+    }
+
+    #[test]
+    fn test_exec_monitoring_logic() {
+        use super::{handle_exec_log, handle_exec_verify, ExecutionLabel, ExecutionLog};
+
+        let temp_log_file = ".comptext/execution_log.latest.json";
+        let _ = std::fs::remove_file(temp_log_file);
+
+        let res1 = handle_exec_log("CommandStarted");
+        assert!(res1.is_ok());
+        assert!(std::path::Path::new(temp_log_file).exists());
+
+        let content1 = std::fs::read_to_string(temp_log_file).unwrap();
+        let log1: ExecutionLog = serde_json::from_str(&content1).unwrap();
+        assert_eq!(log1.schema_version, "0.1");
+        assert_eq!(log1.events.len(), 1);
+        assert_eq!(log1.events[0].label, ExecutionLabel::CommandStarted);
+
+        let res2 = handle_exec_log("CommandFinished");
+        assert!(res2.is_ok());
+
+        let content2 = std::fs::read_to_string(temp_log_file).unwrap();
+        let log2: ExecutionLog = serde_json::from_str(&content2).unwrap();
+        assert_eq!(log2.events.len(), 2);
+        assert!(log2.events[0].timestamp <= log2.events[1].timestamp);
+
+        let verify_res = handle_exec_verify(temp_log_file);
+        assert!(verify_res.is_ok());
+
+        let abs_path = if cfg!(windows) {
+            "C:\\abs\\path\\file.json"
+        } else {
+            "/abs/path/file.json"
+        };
+        let verify_abs_res = handle_exec_verify(abs_path);
+        assert!(verify_abs_res.is_err());
+        assert!(verify_abs_res
+            .unwrap_err()
+            .contains("Absolute paths are forbidden"));
+
+        let verify_env_res = handle_exec_verify(".env");
+        assert!(verify_env_res.is_err());
+        assert!(verify_env_res
+            .unwrap_err()
+            .contains("Accessing secrets or sensitive files"));
+
+        let verify_git_res = handle_exec_verify(".git/config");
+        assert!(verify_git_res.is_err());
+        assert!(verify_git_res
+            .unwrap_err()
+            .contains("Accessing secrets or sensitive files"));
+
+        let res_invalid = handle_exec_log("InvalidLabel");
+        assert!(res_invalid.is_err());
+
+        let out_of_order_json = r#"{
+            "schema_version": "0.1",
+            "events": [
+                {
+                    "label": "CommandFinished",
+                    "timestamp": "2026-06-05T15:00:00Z"
+                },
+                {
+                    "label": "CommandStarted",
+                    "timestamp": "2026-06-05T14:00:00Z"
+                }
+            ]
+        }"#;
+        std::fs::write(temp_log_file, out_of_order_json).unwrap();
+        let verify_order_res = handle_exec_verify(temp_log_file);
+        assert!(verify_order_res.is_err());
+        assert!(verify_order_res
+            .unwrap_err()
+            .contains("not deterministically ordered"));
+
+        let _ = std::fs::remove_file(temp_log_file);
     }
 }

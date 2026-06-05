@@ -1,6 +1,6 @@
 # MCP and Provider Boundary
 
-MCP servers provide context and tool surfaces. They are security-sensitive boundaries.
+Model Context Protocol providers provide context and tool surfaces. They are security-sensitive boundaries.
 
 ## Minimal MCP stack
 

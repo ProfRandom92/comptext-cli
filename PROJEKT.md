@@ -19,10 +19,10 @@ CompText CLI is an experimental terminal context client for building determinist
 
 ### Current State
 ```text
-CURRENT_PHASE: 15
-CURRENT_TASK: Cryptographic Provenance Engine
+CURRENT_PHASE: 16
+CURRENT_TASK: Agent State Contract Skeleton Review-Gate
 LAST_GREEN_PHASE: 15
-STATUS: complete
+STATUS: review-pending
 ```
 
 ### Autonomy Contract
@@ -90,7 +90,7 @@ git push
 | **Phase 13** | Skill Bundle Registry | Local skill bundle registry and starter skill templates | **COMPLETE** |
 | **Phase 14** | Hook/Permission Integration | Hook boundaries, dynamic run approvals | **COMPLETE** |
 | **Phase 15** | Cryptographic Provenance Engine | local SHA-256 provenance manifests | **COMPLETE** |
-| **Phase 16** | Agent State Contract | Planning only on feature branch | **PLANNING** |
+| **Phase 16** | Agent State Contract | Add local agent-state capture/verify/report | **REVIEW-GATE** |
 
 ---
 

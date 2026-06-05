@@ -10,10 +10,10 @@ CompText maintains a strict distinction between behaviors actively executed by t
 
 | Governance Layer | Active Implemented Behavior | Planned Target Behavior |
 |---|---|---|
-| **Context Redaction** | Locally filters high-entropy secrets and sensitive configurations from Context Packs. | Dynamic real-time token scanning of tool input/output streams. |
-| **Apply Gate Checks** | Restricts modified files to allowed paths inside the workspace; runs local tests. | Policy verification hooks triggered before file system mutation. |
-| **Policy Hooks** | Static validation scripts run manually or via CI verification suites. | Runtime interceptors blocking execution before, during, or after tool usage. |
-| **Host Permissions** | Guided instructions and safety baseline rulesets in `AGENTS.md`. | Sandboxed system-level read/write/network blockades enforced by the orchestrator. |
+| **Context Redaction** | Locally filters high-entropy secrets and sensitive configurations from Context Packs. | Planned target real-time token scanning of tool input/output streams (not active in current CLI). |
+| **Apply Gate Checks** | Restricts modified files to allowed paths inside the workspace; runs local tests. | Planned target policy verification checks triggered before file system mutation (not active in current CLI). |
+| **Policy Hooks** | Manual user execution of validation command suites. | Planned target interceptors evaluated before, during, or after tool usage (not active in current CLI). |
+| **Host Permissions** | Guided instructions and safety baseline rulesets in `AGENTS.md`. | Planned target host/orchestrator permission constraints (not active in current CLI). |
 
 ---
 

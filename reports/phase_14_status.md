@@ -58,3 +58,4 @@
 3. **Runtime Permissions**: Authored `docs/RUNTIME_PERMISSION_TEMPLATE.md` defining inert schemas for read/write/network/provider orchestrator constraints.
 4. **Starter Templates**: Placed inert policy and permission configurations under `templates/hooks/` and `templates/permissions/` directories.
 5. **Skill Registry updates**: Configured and registered `.agent/skills/ctxt-phase-14-hook-permission-integration/SKILL.md` with explicit allowed/forbidden scopes and recomputed local SHA-256 change-detection integrity hash.
+6. Review-Gate Cleanup: Updated README project tracking to Phase 13 COMPLETE and Phase 14 NEXT. Cleaned starter skill files to remove claim-sensitive release, readiness, compatibility, and guarantee-style wording. Recomputed and updated local SHA-256 change-detection hashes in the registry index.

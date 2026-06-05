@@ -4,7 +4,7 @@ This template specifies target policy interception configurations. It is inert a
 
 - **Status**: Inert Design Target
 - **Enforcement Layer**: Orchestrator Runtime
-- **Rules**:
-  - PreToolUse: Block `.env` file reading.
-  - PostToolUse: Filter high-entropy patterns.
-  - PostPhase: Execute `cargo test` suite.
+- **Rules (Target-Only / Not Active)**:
+  - PreToolUse: Target-only blocking of `.env` file reading.
+  - PostToolUse: Target-only filtering of high-entropy patterns.
+  - PostPhase: Target-only execution of `cargo test` suite.

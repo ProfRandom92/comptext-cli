@@ -69,7 +69,7 @@ This document provides the inert specification format for policy interceptor hoo
   ```
 
 ### PostPhase Specification
-- **Intent**: Verifies phase completeness and triggers git progression pipeline.
+- **Intent**: Planned target verification of phase completeness status (not active in current CLI).
 - **Inert Spec**:
   ```json
   {

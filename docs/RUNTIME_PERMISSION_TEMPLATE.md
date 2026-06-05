@@ -42,22 +42,3 @@ denied_domains = ["*"]
 allow_live_calls = false
 allowed_providers = ["dummy"]
 ```
-
----
-
-## 2. Phase-Specific Override Template (Inert Target)
-
-```toml
-# local_ollama_permissions.toml - Inert target override example
-[runtime_permissions]
-status = "target"
-override_scope = "phase_4"
-
-[network]
-allow_sockets = true
-allowed_endpoints = ["http://localhost:11434"]
-
-[provider]
-allow_live_calls = true
-allowed_providers = ["ollama"]
-```

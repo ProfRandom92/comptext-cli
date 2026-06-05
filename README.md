@@ -85,9 +85,9 @@ CompText is for developers who want AI-assisted workflows with stronger boundari
 
 ```text
 Binary: ctxt
-Current phase: Phase 9
-Current task: Validate and Benchmark
-Last green phase: Phase 9
+Current phase: Phase 11
+Current task: Release Packaging
+Last green phase: Phase 11
 Status: complete
 ```
 
@@ -106,15 +106,17 @@ Phase 6   Apply Gate                             COMPLETE
 Phase 7   Provider Config Layer                  COMPLETE
 Phase 8   OpenAI-Compatible Adapter              COMPLETE
 Phase 9   Validate and Benchmark                 COMPLETE
+Phase 10  MVP Stabilization & Release Readiness  COMPLETE
+Phase 11  Release Packaging                      COMPLETE
 ```
 
 Next areas:
 
 ```text
-Phase 10  MCP Provider Boundary                  NEXT
-Phase 11  Hook / Workflow Governance             QUEUED
-Phase 12  Token Compression Intercepts           QUEUED
-Phase 13  Skill Bundle Registry                  QUEUED
+Phase 12  Antigravity CLI Governance & Token Economy NEXT
+Phase 13  Skill Bundle Registry                      QUEUED
+Phase 14  Hook/Permission Integration                QUEUED
+Phase 15  Cryptographic Provenance Engine            QUEUED
 ```
 
 ```mermaid
@@ -123,10 +125,12 @@ flowchart LR
     P6 --> P7[Provider Config]
     P7 --> P8[OpenAI-Compatible]
     P8 --> P9[Validate + Benchmark]
-    P9 --> P10[MCP Boundary]
-    P10 --> P11[Hook Governance]
-    P11 --> P12[Token Compression]
-    P12 --> P13[Skill Bundles]
+    P9 --> P10[Stabilization]
+    P10 --> P11[Release Package]
+    P11 --> P12[CLI Governance]
+    P12 --> P13[Skill Registry]
+    P13 --> P14[Hook Integration]
+    P14 --> P15[Provenance Engine]
 ```
 
 ---

@@ -87,9 +87,10 @@ CompText is for developers who want AI-assisted workflows with stronger boundari
 ```text
 Binary: ctxt
 Current phase: Phase 15
-Current task: Cryptographic Provenance Engine
-Last green phase: Phase 15
-Status: complete
+Current task: Cryptographic Provenance Engine Review-Gate cleanup
+Last green phase: Phase 14
+Status: blocked until Phase 15 cleanup passes Review-Gate
+Next allowed action: Phase 15 source-of-truth and provenance-boundary cleanup
 ```
 
 Completed so far:
@@ -112,13 +113,44 @@ Phase 11  Release Packaging                      COMPLETE
 Phase 12  Antigravity CLI Governance & Token Economy COMPLETE
 Phase 13  Skill Bundle Registry                  COMPLETE
 Phase 14  Hook/Permission Integration            COMPLETE
-Phase 15  Cryptographic Provenance Engine        COMPLETE
+Phase 15  Cryptographic Provenance Engine        BLOCKED: Review-Gate cleanup
 ```
 
 Next areas:
 
 ```text
-None (Roadmap Complete)
+Phase 15  Finish Review-Gate cleanup and re-review
+Phase 16  Agent State Contract planning only after Phase 15 PASS
+```
+
+### Review-Gate Operating Rules
+
+```text
+No NEXT without Review-Gate.
+No Roadmap Complete claim while any phase is blocked.
+No automatic phase progression.
+Review-Gate decides PASS / PASS WITH NOTES / BLOCKED.
+```
+
+Operating modes:
+
+```text
+AUDIT           read-only contradiction search
+CONSOLIDATE     align README / PROJEKT / reports / docs
+FIX             narrow code or documentation repair
+REVIEW-GATE     no edits, PASS or BLOCKED only
+PHASE WORK      bounded implementation after Review-Gate approval
+```
+
+Current Phase 15 cleanup must preserve these boundaries:
+
+```text
+local SHA-256 provenance manifests only
+raw file content SHA-256 unless canonicalization is implemented
+no signed evidence trail claim
+no cryptographic integrity seal claim
+no security-proof / compliance / certification claim
+no arbitrary path reads or manifest writes outside the repo root
 ```
 
 ```mermaid
@@ -132,7 +164,8 @@ flowchart LR
     P11 --> P12[CLI Governance]
     P12 --> P13[Skill Registry]
     P13 --> P14[Hook Integration]
-    P14 --> P15[Provenance Engine]
+    P14 --> P15[Provenance Engine Cleanup]
+    P15 --> P16[Agent State Contract Planning]
 ```
 
 ---
@@ -178,393 +211,3 @@ cargo run --bin ctxt -- ask --dry-run "What is the next safe step?"
 cargo run --bin ctxt -- ask --provider dummy "How should I test this repo?"
 cargo run --bin ctxt -- propose --provider dummy "Add context inspect"
 ```
-
-### 6. Validate and benchmark
-
-```bash
-cargo run --bin ctxt -- validate
-cargo run --bin ctxt -- benchmark --provider dummy "How should I test this repo?"
-```
-
----
-
-## Implemented Commands
-
-```bash
-# Diagnostic & Metadata
-ctxt --help
-ctxt version
-ctxt doctor
-ctxt providers list
-
-# Context Pack Operations
-ctxt context inspect
-ctxt context pack --task "Stabilization check"
-
-# Ask Pipeline
-ctxt ask --dry-run "How should I test this repo?"
-ctxt ask --provider dummy "How should I test this repo?"
-
-# Proposal & Apply Workflows
-ctxt propose --provider dummy "Add context inspect"
-ctxt apply proposals/proposal.latest.json
-ctxt validate
-
-# Local Benchmarking
-ctxt benchmark --provider dummy "How should I test this repo?"
-```
-
-Live provider usage is intentionally gated by configuration and policy. Offline/dummy workflows are the default path for local development and CI-style checks.
-
----
-
-## Typical Workflow
-
-```mermaid
-sequenceDiagram
-    participant Dev as Developer
-    participant CLI as ctxt
-    participant CP as Context Pack
-    participant P as Provider
-    participant Prop as Proposal
-    participant Gate as Apply Gate
-    participant Val as Validation
-
-    Dev->>CLI: context inspect
-    CLI->>CP: collect bounded repository context
-    Dev->>CLI: ask --dry-run
-    CLI-->>Dev: model_request.latest.json
-    Dev->>CLI: propose --provider dummy
-    CLI->>P: offline deterministic request
-    P-->>CLI: untrusted response
-    CLI->>Prop: write proposal JSON
-    Dev->>Gate: review and apply selected proposal
-    Gate->>Val: run validation commands
-    Val-->>Dev: report / evidence
-```
-
----
-
-## Artifacts
-
-CompText is built around inspectable files rather than conversation memory.
-
-Common artifacts:
-
-```text
-.comptext/context_pack.latest.json
-.comptext/model_request.latest.json
-.comptext/model_response.latest.json
-.comptext/openai_request.latest.json
-.comptext/benchmark.latest.json
-proposals/proposal.latest.json
-reports/phase_*_status.md
-```
-
-```mermaid
-flowchart TD
-    CMD[ctxt command] --> CP[Context Pack]
-    CMD --> REQ[Model Request]
-    CMD --> RESP[Model Response]
-    CMD --> PROP[Proposal]
-    CMD --> BENCH[Benchmark]
-    CMD --> REPORT[Report]
-    CP --> PROOF[Proof Trail]
-    REQ --> PROOF
-    RESP --> PROOF
-    PROP --> PROOF
-    BENCH --> PROOF
-    REPORT --> PROOF
-```
-
-`.comptext/` is runtime state and should normally stay ignored by git.
-
-`proposals/` contains reviewable change proposals.
-
-`reports/` contains phase evidence and validation summaries.
-
----
-
-## Brand Assets
-
-Repository artwork lives in [`assets/`](assets/README.md):
-
-```text
-assets/logo.svg             Full wordmark logo
-assets/mark.svg             Square icon / compact mark
-assets/banner.svg           README banner
-assets/social-preview.svg   GitHub social preview source artwork
-```
-
-To use the social preview on GitHub, export `assets/social-preview.svg` to a `1280x640` PNG and upload it under repository settings.
-
----
-
-## Context Packs
-
-A Context Pack is the model-facing boundary between raw repository noise and structured task context.
-
-Minimal shape:
-
-```json
-{
-  "schema_version": "0.1",
-  "task": "...",
-  "mode": "ask",
-  "repo_profile": "default",
-  "read_first": [],
-  "included_files": [],
-  "excluded_files": [],
-  "allowed_write_paths": [],
-  "forbidden_actions": [],
-  "validation_commands": [],
-  "provider": "dummy",
-  "rendered_context": "...",
-  "policy": {
-    "secrets_redacted": true,
-    "generated_outputs_excluded": true,
-    "patch_requires_approval": true
-  }
-}
-```
-
----
-
-## Proposal and Apply
-
-CompText separates suggestion from mutation.
-
-`propose` writes a JSON proposal.
-
-`apply` reads a selected proposal, checks allowed paths, asks for confirmation unless `--yes` is used, applies supported operations, and runs validation commands.
-
-```mermaid
-flowchart LR
-    A[Task] --> B[Context Pack]
-    B --> C[Provider Response]
-    C --> D[Proposal JSON]
-    D --> E{Review}
-    E -->|approved| F[Apply Gate]
-    E -->|rejected| G[No Mutation]
-    F --> H[Allowed Path Check]
-    H --> I[Apply Operations]
-    I --> J[Validation]
-```
-
-Current proposal shape:
-
-```json
-{
-  "schema_version": "0.1",
-  "task": "...",
-  "rationale": "...",
-  "preconditions": ["cargo check"],
-  "affected_files": ["src/cli.rs"],
-  "operations": [
-    {
-      "op": "patch",
-      "path": "src/cli.rs",
-      "detail": "..."
-    }
-  ],
-  "validation_commands": ["cargo test"],
-  "rollback_strategy": "git restore src/cli.rs",
-  "risk_notes": "..."
-}
-```
-
----
-
-## Providers
-
-Configured provider families:
-
-```text
-dummy
-ollama-local
-ollama-cloud-via-local
-ollama-cloud-direct
-openai-compatible
-```
-
-```mermaid
-flowchart TD
-    CFG[comptext.toml / comptext.example.toml] --> P[Provider Profiles]
-    CFG --> POL[Policy]
-    P --> D[dummy]
-    P --> O[ollama-local]
-    P --> OC[ollama-cloud-direct]
-    P --> OA[openai-compatible]
-    D --> OFF[offline deterministic]
-    O --> LOCAL[localhost boundary]
-    OC --> NET[remote network boundary]
-    OA --> API[normalized request artifact]
-    POL --> DENY[network_default = deny]
-```
-
-Example:
-
-```toml
-[defaults]
-provider = "dummy"
-dry_run_default = true
-proposal_required = true
-
-[providers.dummy]
-kind = "dummy"
-network = false
-
-[providers.ollama-local]
-kind = "ollama"
-base_url = "http://localhost:11434"
-auth = "none"
-
-[providers.openai-compatible]
-kind = "openai-compatible"
-base_url = "http://localhost:11434/v1"
-model = "gpt-4o"
-auth_env = "OPTIONAL_API_KEY"
-network = false
-
-[policy]
-network_default = "deny"
-allow_provider_network = false
-secrets_redaction = true
-apply_requires_confirmation = true
-```
-
-Secrets such as `OLLAMA_API_KEY` must never be printed, logged, serialized into artifacts, or included in context packs.
-
----
-
-## Validate and Benchmark
-
-`ctxt validate` prints the standard local validation suite:
-
-```bash
-cargo fmt --all --check
-cargo check
-cargo test
-cargo clippy -- -D warnings
-```
-
-`ctxt benchmark` currently supports the offline `dummy` provider and fails closed for non-dummy providers in this phase.
-
-Phase 9 evidence records:
-
-```text
-35 tests passed
-network: offline-only
-secrets: redacted
-benchmark artifact: .comptext/benchmark.latest.json
-```
-
----
-
-## Safety Model
-
-CompText treats generated or external content as untrusted until policy-checked.
-
-Untrusted by default:
-
-```text
-provider output
-model output
-tool output
-MCP server output
-generated patches
-shell commands suggested by a model
-```
-
-Forbidden by default:
-
-```text
-reading .env
-reading private keys
-printing environment variables
-writing outside allowed paths
-running network commands without explicit approval
-executing provider-suggested shell commands without review
-applying patches outside proposal/apply flow
-committing generated runtime outputs by default
-```
-
-CompText does not claim to be production-ready, enterprise-ready, compliance-ready, certified, fully autonomous, or guaranteed safe.
-
----
-
-## Project Map
-
-```text
-AGENTS.md                         safety constitution
-PROJEKT.md                        project state machine
-comptext.example.toml             provider and policy config example
-docs/                             architecture and contracts
-reports/                          phase evidence
-.comptext/                        local runtime artifacts
-proposals/                        reviewable proposal artifacts
-.agent/skills/                    agent workflow skills
-.agents/skills/                   normalized skill registry
-```
-
----
-
-## Contributing
-
-Small, focused contributions are preferred.
-
-Good first contribution areas:
-
-- docs cleanup
-- smoke tests
-- CLI help text
-- proposal schema improvements
-- safer validation behavior
-- provider config examples
-- benchmark artifact improvements
-
-Before opening a PR or committing a phase change, run:
-
-```bash
-cargo fmt --all --check
-cargo check
-cargo test
-cargo clippy -- -D warnings
-```
-
-Please avoid:
-
-- unrelated rewrites
-- live cloud calls in tests
-- committing `.comptext/` runtime outputs
-- adding secrets or credentials
-- production/enterprise/compliance claims
-
----
-
-## Related Project Family
-
-```mermaid
-flowchart TD
-    CORE[Comptextv7<br/>research / replay validation / context semantics] --> CLI[comptext-cli<br/>terminal workflow]
-    SPARK[comptext-sparkctl<br/>validation / benchmark / evidence] --> CLI
-    SKILLS[antigravity-skills<br/>workflow capsules] --> CLI
-    CLI --> DEV[reviewable AI-assisted development]
-```
-
-- `comptext-cli`: product CLI, terminal UX, provider adapters, Context Packs, proposals, apply gate, validation workflow, and offline benchmark artifacts
-- `comptext-sparkctl`: deterministic validation, phase gates, benchmark and evidence layer
-- `antigravity-skills`: progressive workflow capsules for phase-scoped agent work
-
----
-
-## Development Stance
-
-```text
-Do not trust the conversation.
-Trust the artifacts.
-```
-
-Compress the noise.
-
-Preserve the proof.

@@ -81,3 +81,12 @@ This document serves as the local registry index for all authorized skills in th
 - **Forbidden Scope**: Modifying Rust codebase, active hook scripting/enforcement, and enabling provider network socket connectivity.
 - **Validation Commands**: `cargo test`
 - **Local SHA-256 Checksum**: `234A19F1E9E728412D5E0C1714D2A94F886509E2D47B54FC402EB84A1FD69A6D`
+
+### 9. `ctxt-phase-15-cryptographic-provenance`
+- **Path**: [.agent/skills/ctxt-phase-15-cryptographic-provenance/SKILL.md](file:///.agent/skills/ctxt-phase-15-cryptographic-provenance/SKILL.md)
+- **Description**: Adds local provenance manifest verification and generation workflows.
+- **Intended Use**: Verifying integrity of local context packs, proposal patches, and benchmarks.
+- **Allowed Scope**: Modifying Rust CLI modules and unit tests, writing test verification files.
+- **Forbidden Scope**: Implementing remote network registries, blockchain, consensus protocols, or active hooks.
+- **Validation Commands**: `cargo test`
+- **Local SHA-256 Checksum**: `68D210DCAF7E7A95F65AC9EE5179FD60212D63CD9B85A92F24A9D4267B64B329`

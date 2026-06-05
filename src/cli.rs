@@ -96,6 +96,10 @@ enum Command {
         provider: Option<String>,
         task: String,
     },
+    Verify {
+        file_path: String,
+        parent: Option<String>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -256,6 +260,15 @@ where
         },
         Ok(Command::Benchmark { provider, task }) => {
             match handle_benchmark(provider.as_deref(), &task, &config) {
+                Ok(_) => 0,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    1
+                }
+            }
+        }
+        Ok(Command::Verify { file_path, parent }) => {
+            match handle_verify(&file_path, parent.as_deref()) {
                 Ok(_) => 0,
                 Err(e) => {
                     eprintln!("error: {e}");
@@ -466,6 +479,39 @@ fn parse(argv: &[String]) -> Result<Command, String> {
             }
             Ok(Command::Validate)
         }
+        "verify" => {
+            if argv.len() < 2 {
+                return Err("missing file path for 'verify'. Usage: ctxt verify <file_path> [--parent <parent>]".to_string());
+            }
+            let mut file_path = String::new();
+            let mut parent = None;
+            let mut i = 1;
+            while i < argv.len() {
+                match argv[i].as_str() {
+                    "--parent" => {
+                        if i + 1 >= argv.len() {
+                            return Err("missing parent path after --parent".to_string());
+                        }
+                        parent = Some(argv[i + 1].clone());
+                        i += 2;
+                    }
+                    other => {
+                        if other.starts_with('-') {
+                            return Err(format!("unsupported option '{other}' for 'verify'"));
+                        }
+                        if !file_path.is_empty() {
+                            return Err(format!("unexpected argument '{other}' for 'verify'"));
+                        }
+                        file_path = other.to_string();
+                        i += 1;
+                    }
+                }
+            }
+            if file_path.is_empty() {
+                return Err("missing file path for 'verify'".to_string());
+            }
+            Ok(Command::Verify { file_path, parent })
+        }
         "benchmark" => {
             let mut provider = None;
             let mut task = String::new();
@@ -527,6 +573,7 @@ COMMANDS:\n\
     apply               Apply proposed changes and validate\n\
     validate            Validate the repository state against proposal\n\
     benchmark           Run deterministic local model/context benchmarks\n\
+    verify              Verify or generate local provenance manifest\n\
 \n\
 SAFETY DEFAULTS:\n\
     network_default=deny\n\
@@ -1269,6 +1316,178 @@ fn handle_validate() -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct ProvenanceManifest {
+    pub schema_version: String,
+    pub artifact_path: String,
+    pub sha256: String,
+    pub parent_link: Option<String>,
+    pub metadata: HashMap<String, String>,
+}
+
+#[allow(clippy::needless_range_loop)]
+pub fn sha256(data: &[u8]) -> [u8; 32] {
+    let mut h: [u32; 8] = [
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
+        0x5be0cd19,
+    ];
+    let k: [u32; 64] = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+        0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+        0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+        0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
+        0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
+        0xc67178f2,
+    ];
+
+    let mut blocks = Vec::new();
+    blocks.extend_from_slice(data);
+    let len_bits = (data.len() as u64) * 8;
+    blocks.push(0x80);
+    while (blocks.len() + 8) % 64 != 0 {
+        blocks.push(0x00);
+    }
+    blocks.extend_from_slice(&len_bits.to_be_bytes());
+
+    for chunk in blocks.chunks(64) {
+        let mut w = [0u32; 64];
+        for i in 0..16 {
+            let offset = i * 4;
+            w[i] = u32::from_be_bytes([
+                chunk[offset],
+                chunk[offset + 1],
+                chunk[offset + 2],
+                chunk[offset + 3],
+            ]);
+        }
+        for i in 16..64 {
+            let s0 = w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3);
+            let s1 = w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10);
+            w[i] = w[i - 16]
+                .wrapping_add(s0)
+                .wrapping_add(w[i - 7])
+                .wrapping_add(s1);
+        }
+
+        let mut a = h[0];
+        let mut b = h[1];
+        let mut c = h[2];
+        let mut d = h[3];
+        let mut e = h[4];
+        let mut f = h[5];
+        let mut g = h[6];
+        let mut h_var = h[7];
+
+        for i in 0..64 {
+            let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
+            let ch = (e & f) ^ ((!e) & g);
+            let temp1 = h_var
+                .wrapping_add(s1)
+                .wrapping_add(ch)
+                .wrapping_add(k[i])
+                .wrapping_add(w[i]);
+            let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
+            let maj = (a & b) ^ (a & c) ^ (b & c);
+            let temp2 = s0.wrapping_add(maj);
+
+            h_var = g;
+            g = f;
+            f = e;
+            e = d.wrapping_add(temp1);
+            d = c;
+            c = b;
+            b = a;
+            a = temp1.wrapping_add(temp2);
+        }
+
+        h[0] = h[0].wrapping_add(a);
+        h[1] = h[1].wrapping_add(b);
+        h[2] = h[2].wrapping_add(c);
+        h[3] = h[3].wrapping_add(d);
+        h[4] = h[4].wrapping_add(e);
+        h[5] = h[5].wrapping_add(f);
+        h[6] = h[6].wrapping_add(g);
+        h[7] = h[7].wrapping_add(h_var);
+    }
+
+    let mut result = [0u8; 32];
+    for i in 0..8 {
+        let bytes = h[i].to_be_bytes();
+        result[i * 4..i * 4 + 4].copy_from_slice(&bytes);
+    }
+    result
+}
+
+pub fn sha256_hex(data: &[u8]) -> String {
+    let bytes = sha256(data);
+    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+fn handle_verify(file_path: &str, parent: Option<&str>) -> Result<(), String> {
+    let path = std::path::Path::new(file_path);
+    if !path.exists() {
+        return Err(format!("File '{}' does not exist.", file_path));
+    }
+
+    let content = std::fs::read(path)
+        .map_err(|e| format!("failed to read file '{}': {e}", path.display()))?;
+
+    let computed_hash = sha256_hex(&content);
+
+    let manifest_path = format!("{}.provenance.json", file_path);
+    let manifest_file_path = std::path::Path::new(&manifest_path);
+
+    if manifest_file_path.exists() {
+        // Verification mode
+        let manifest_content = std::fs::read_to_string(manifest_file_path)
+            .map_err(|e| format!("failed to read manifest file '{}': {e}", manifest_path))?;
+        let manifest: ProvenanceManifest = serde_json::from_str(&manifest_content)
+            .map_err(|e| format!("failed to parse manifest JSON: {e}"))?;
+
+        if manifest.sha256 == computed_hash {
+            println!("Verification successful.");
+            println!("File: {}", file_path);
+            println!("Hash: {}", computed_hash);
+            if let Some(ref p) = manifest.parent_link {
+                println!("Parent Link: {}", p);
+            }
+            Ok(())
+        } else {
+            Err(format!(
+                "Verification failed: Checksum mismatch.\nExpected: {}\nActual:   {}",
+                manifest.sha256, computed_hash
+            ))
+        }
+    } else {
+        // Generation mode
+        let mut metadata = HashMap::new();
+        metadata.insert("timestamp".to_string(), "2026-06-05T10:57:20Z".to_string());
+
+        let manifest = ProvenanceManifest {
+            schema_version: "0.1".to_string(),
+            artifact_path: file_path.to_string(),
+            sha256: computed_hash.clone(),
+            parent_link: parent.map(|p| p.to_string()),
+            metadata,
+        };
+
+        let json_content = serde_json::to_string_pretty(&manifest)
+            .map_err(|e| format!("failed to serialize provenance manifest: {e}"))?;
+
+        std::fs::write(&manifest_path, json_content)
+            .map_err(|e| format!("failed to write provenance manifest: {e}"))?;
+
+        println!("Provenance manifest generated.");
+        println!("Manifest: {}", manifest_path);
+        println!("Hash:     {}", computed_hash);
+        Ok(())
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BenchmarkArtifact {
     pub schema_version: String,
@@ -1808,5 +2027,38 @@ mod tests {
         assert!(res2.unwrap_err().contains(
             "Security Policy Violation: Benchmark only supports the offline 'dummy' provider"
         ));
+    }
+
+    #[test]
+    fn test_provenance_verification() {
+        use super::handle_verify;
+        let temp_dir = std::env::temp_dir();
+        let test_file_path = temp_dir.join("test_provenance_artifact.txt");
+        let manifest_path = temp_dir.join("test_provenance_artifact.txt.provenance.json");
+
+        // Clean up any leftovers
+        let _ = std::fs::remove_file(&test_file_path);
+        let _ = std::fs::remove_file(&manifest_path);
+
+        // 1. Write file
+        std::fs::write(&test_file_path, "provenance test contents").unwrap();
+
+        // 2. Generate manifest
+        let gen_res = handle_verify(&test_file_path.to_string_lossy(), Some("parent_task_123"));
+        assert!(gen_res.is_ok());
+        assert!(manifest_path.exists());
+
+        // 3. Verify manifest
+        let verify_res = handle_verify(&test_file_path.to_string_lossy(), None);
+        assert!(verify_res.is_ok());
+
+        // 4. Modify file and verify failure
+        std::fs::write(&test_file_path, "provenance test contents MUTATED").unwrap();
+        let verify_fail_res = handle_verify(&test_file_path.to_string_lossy(), None);
+        assert!(verify_fail_res.is_err());
+
+        // Clean up
+        let _ = std::fs::remove_file(&test_file_path);
+        let _ = std::fs::remove_file(&manifest_path);
     }
 }

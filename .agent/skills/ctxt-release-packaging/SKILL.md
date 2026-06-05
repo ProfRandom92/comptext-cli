@@ -7,15 +7,15 @@ summary: "Audits release checklist, compiles release target binary, and verifies
 # Skill: ctxt-release-packaging
 
 ## Goal
-Verify the release checklist, edit the changelog, build the production release binary, and ensure Git tree cleanliness.
+Verify the release checklist, edit the changelog, build the release target binary, and ensure Git tree cleanliness.
 
 ## Read first
 - docs/RELEASE_CHECKLIST.md
 - CHANGELOG.md
 
 ## Use when
-- Compiling a stable local release package of the CLI.
-- Updating release tags and metadata.
+- Compiling a local release package of the CLI.
+- Updating version metadata and changelog entries.
 - Validating Git ignore rules before final release commits.
 
 ## Allowed
@@ -24,6 +24,7 @@ Verify the release checklist, edit the changelog, build the production release b
 - Writing release checklists and changelogs.
 
 ## Forbidden
+- No Git tag creation, release publishing, or package publishing unless explicitly authorized by a later phase.
 - Committing temporary `.comptext/` cache directories.
 - Rewriting Git history or performing force pushes.
 - Adding unverified or uncompiled files to the release package.

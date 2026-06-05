@@ -26,7 +26,7 @@ This document serves as the local registry index for all authorized skills in th
 - **Allowed Scope**: Scanning repository workspace, adjusting `.gitignore` rules, verifying offline providers.
 - **Forbidden Scope**: Reading `.env`, printing env, live network/provider calls, out-of-bounds writes.
 - **Validation Commands**: `cargo test`
-- **Local SHA-256 Checksum**: `5C2E7E9167EF2532B06212307DD4D7CADAC31509D8855332269FDEF2158DD367`
+- **Local SHA-256 Checksum**: `0B5E7A631E8CCED2E058870112B8569D2E01FD373E13CE89F448BB2BDA5D4EEC`
 
 ### 3. `ctxt-ci-diagnoser`
 - **Path**: [.agent/skills/ctxt-ci-diagnoser/SKILL.md](file:///.agent/skills/ctxt-ci-diagnoser/SKILL.md)
@@ -44,7 +44,7 @@ This document serves as the local registry index for all authorized skills in th
 - **Allowed Scope**: Modifying markdown documents in `docs/`, `reports/`, and repository root.
 - **Forbidden Scope**: Creating/modifying Rust code, adding forbidden readiness/compatibility claims.
 - **Validation Commands**: `git status --porcelain`
-- **Local SHA-256 Checksum**: `C1C7F9751F77F7EB00A103C10468A947CB603E342FC6E00166B6A0B96707ED7B`
+- **Local SHA-256 Checksum**: `0E19E1D5443C75704E657CDBCEE882436F34F02F73F1A3551C37EF8D786B1CE2`
 
 ### 5. `ctxt-proposal-auditor`
 - **Path**: [.agent/skills/ctxt-proposal-auditor/SKILL.md](file:///.agent/skills/ctxt-proposal-auditor/SKILL.md)
@@ -58,11 +58,11 @@ This document serves as the local registry index for all authorized skills in th
 ### 6. `ctxt-release-packaging`
 - **Path**: [.agent/skills/ctxt-release-packaging/SKILL.md](file:///.agent/skills/ctxt-release-packaging/SKILL.md)
 - **Description**: Audits release checklist, compiles release target binary, and verifies git hygiene.
-- **Intended Use**: Checking release readiness checklists, writing release tags, compiling release build binary.
-- **Allowed Scope**: Compiling release build (`cargo build --release`), updating version tags, editing changelogs.
+- **Intended Use**: Checking release readiness checklists, updating version metadata, and compiling release target binary.
+- **Allowed Scope**: Compiling release build (`cargo build --release`), updating version metadata in Cargo.toml, editing changelogs.
 - **Forbidden Scope**: Committing temporary `.comptext/` cache directories, force pushes.
 - **Validation Commands**: `cargo build --release`, `git diff --exit-code`
-- **Local SHA-256 Checksum**: `099603E467A7E2EDD7DE82FCE3A453377F980FD8423FFF7FF3CB96164521BE82`
+- **Local SHA-256 Checksum**: `7C5E20A372E08CB9BF7C38BD3EF0B8A8998298C896FB77FA4EB34D0C7DA76CCA`
 
 ### 7. `ctxt-phase-13-skill-bundle-registry`
 - **Path**: [.agent/skills/ctxt-phase-13-skill-bundle-registry/SKILL.md](file:///.agent/skills/ctxt-phase-13-skill-bundle-registry/SKILL.md)

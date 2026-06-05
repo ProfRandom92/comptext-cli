@@ -7,7 +7,7 @@ summary: "Audits repository modifications against safety boundaries, credential 
 # Skill: ctxt-security-review
 
 ## Goal
-Audit codebase safety, confirm secret redaction, and ensure no forbidden readiness or compliance claims exist in repository files.
+Audit codebase safety, confirm secret redaction, and ensure no forbidden readiness or compatibility claims exist in repository files.
 
 ## Read first
 - AGENTS.md
@@ -16,7 +16,7 @@ Audit codebase safety, confirm secret redaction, and ensure no forbidden readine
 ## Use when
 - Performing security checks before a git commit.
 - Inspecting files for high-entropy secrets or private keys.
-- Reviewing documentation for forbidden readiness or compliance claims.
+- Reviewing documentation for forbidden readiness or compatibility claims.
 
 ## Allowed
 - Reading and scanning files within the repository workspace.

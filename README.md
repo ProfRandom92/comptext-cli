@@ -86,9 +86,9 @@ CompText is for developers who want AI-assisted workflows with stronger boundari
 
 ```text
 Binary: ctxt
-Current phase: Phase 12
-Current task: Antigravity CLI Governance & Token Economy
-Last green phase: Phase 12
+Current phase: Phase 13
+Current task: Skill Bundle Registry
+Last green phase: Phase 13
 Status: complete
 ```
 
@@ -110,13 +110,13 @@ Phase 9   Validate and Benchmark                 COMPLETE
 Phase 10  MVP Stabilization & Release Readiness  COMPLETE
 Phase 11  Release Packaging                      COMPLETE
 Phase 12  Antigravity CLI Governance & Token Economy COMPLETE
+Phase 13  Skill Bundle Registry                  COMPLETE
 ```
 
 Next areas:
 
 ```text
-Phase 13  Skill Bundle Registry                      NEXT
-Phase 14  Hook/Permission Integration                QUEUED
+Phase 14  Hook/Permission Integration                NEXT
 Phase 15  Cryptographic Provenance Engine            QUEUED
 ```
 

@@ -630,6 +630,42 @@ fn normalize_path(path: &std::path::Path) -> String {
     s.replace('\\', "/")
 }
 
+fn is_sensitive_context_path(path: &str) -> bool {
+    let normalized = path.replace('\\', "/");
+    let lower = normalized.to_ascii_lowercase();
+    let file_name = lower.rsplit('/').next().unwrap_or(lower.as_str());
+
+    file_name == ".env"
+        || file_name.starts_with(".env.")
+        || file_name.ends_with(".key")
+        || file_name.ends_with(".pem")
+        || file_name.ends_with(".p12")
+        || file_name.ends_with(".pfx")
+        || file_name.contains("api_key")
+        || file_name.contains("apikey")
+        || file_name.contains("secret")
+        || file_name.contains("token")
+        || file_name.contains("credential")
+        || matches!(
+            file_name,
+            "key" | "keys" | "id_rsa" | "id_dsa" | "id_ecdsa" | "id_ed25519"
+        )
+}
+
+fn ensure_provider_network_allowed(
+    config: &Config,
+    profile: &ProviderProfile,
+    provider_name: &str,
+) -> Result<(), String> {
+    if config.policy.allow_provider_network && profile.network.unwrap_or(true) {
+        return Ok(());
+    }
+
+    Err(format!(
+        "Network access denied by security policy for provider '{provider_name}'. Enable allow_provider_network and provider network=true in config to allow live execution."
+    ))
+}
+
 fn redact_secrets(content: &str) -> String {
     let mut redacted = String::new();
     for line in content.lines() {
@@ -676,6 +712,7 @@ fn build_context_pack(task: &str) -> Result<ContextPack, String> {
             || rel_path.ends_with(".dll")
             || rel_path.ends_with(".pdb")
             || rel_path == "Cargo.lock"
+            || is_sensitive_context_path(&rel_path)
         {
             continue;
         }
@@ -700,6 +737,14 @@ fn build_context_pack(task: &str) -> Result<ContextPack, String> {
             ".git/".to_string(),
             ".comptext/".to_string(),
             "reports/".to_string(),
+            ".env".to_string(),
+            ".env.*".to_string(),
+            "*.key".to_string(),
+            "*.pem".to_string(),
+            "*.p12".to_string(),
+            "*.pfx".to_string(),
+            "*key*".to_string(),
+            "*credential*".to_string(),
         ],
         allowed_write_paths: vec![],
         forbidden_actions: vec![],
@@ -846,6 +891,8 @@ fn handle_ask(
             Ok(())
         }
         "ollama" => {
+            ensure_provider_network_allowed(config, profile, resolved_provider)?;
+
             use crate::provider::{OllamaProvider, Provider};
             let url = profile
                 .base_url
@@ -971,6 +1018,8 @@ fn handle_propose(provider_name: Option<&str>, task: &str, config: &Config) -> R
             prov.execute(&request)?
         }
         "ollama" => {
+            ensure_provider_network_allowed(config, profile, resolved_provider)?;
+
             use crate::provider::{OllamaProvider, Provider};
             let url = profile
                 .base_url

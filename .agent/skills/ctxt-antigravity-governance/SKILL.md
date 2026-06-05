@@ -21,6 +21,10 @@ Enforce token-efficient context parsing, hook governance, permissions checks, an
 - Defining permissions profiles or subagent boundaries.
 - Refining token usage and model effort guidelines.
 
+## Allowed
+- Reading and verifying configuration and markdown governance documentation.
+- Reviewing token economics and model effort selections.
+
 ## Forbidden
 - Reading `.env` or credentials files.
 - Dumping environment variables.

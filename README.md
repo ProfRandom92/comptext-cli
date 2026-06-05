@@ -23,7 +23,8 @@
   <a href="#why-comptext">Why CompText?</a> ·
   <a href="#artifacts">Artifacts</a> ·
   <a href="#contributing">Contributing</a> ·
-  <a href="assets/README.md">Brand Assets</a>
+  <a href="assets/README.md">Brand Assets</a> ·
+  <a href="docs/SKILL_BUNDLE_REGISTRY.md">Skill Registry</a>
 </p>
 
 CompText CLI (`ctxt`) is an experimental, local-first terminal tool for turning messy repository state into deterministic, reviewable Context Packs before talking to model providers.

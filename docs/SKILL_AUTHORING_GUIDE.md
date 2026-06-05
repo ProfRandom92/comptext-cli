@@ -28,6 +28,9 @@ List of absolute or workspace-relative file links that the agent must read befor
 ## Use when
 Explicit description of triggers, keywords, or phase constraints under which this skill is active.
 
+## Allowed
+Specific actions, files, or scopes that the agent is authorized to modify or access.
+
 ## Forbidden
 Concrete list of actions, commands, and files that are strictly banned while this skill is active.
 
@@ -64,6 +67,7 @@ To keep the registry consistent, all skill filenames and YAML names must follow 
 1. **Goal**: Must be concrete and bounded (no vague goals like *"Improve code"*).
 2. **Read first**: Must list the files representing the source of truth for the task (e.g., `AGENTS.md`, `PROJEKT.md`).
 3. **Use when**: Must describe the precise phase state.
-4. **Forbidden**: Must list global rules (e.g., *no network*, *no .env reads*) and task-specific constraints.
-5. **Validation**: Must include standard local commands (`cargo check`, `cargo test`, etc.).
-6. **Return**: Must match the standard schema declared in `AGENTS.md`.
+4. **Allowed**: Must list specific actions, files, or scopes the agent is authorized to modify or access.
+5. **Forbidden**: Must list global rules (e.g., *no network*, *no .env reads*) and task-specific constraints.
+6. **Validation**: Must include standard local commands (`cargo check`, `cargo test`, etc.).
+7. **Return**: Must match the standard schema declared in `AGENTS.md`.

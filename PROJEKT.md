@@ -19,9 +19,9 @@ CompText CLI is an experimental terminal context client for building determinist
 
 ### Current State
 ```text
-CURRENT_PHASE: 12
-CURRENT_TASK: Antigravity CLI Governance & Token Economy
-LAST_GREEN_PHASE: 12
+CURRENT_PHASE: 13
+CURRENT_TASK: Skill Bundle Registry
+LAST_GREEN_PHASE: 13
 STATUS: complete
 ```
 
@@ -87,8 +87,8 @@ git push
 | **Phase 10** | MVP Stabilization & Release Readiness | Audit documentation, verify command flows, safety hygiene checks | **COMPLETE** |
 | **Phase 11** | Release Packaging | Package CLI binary, finalize manifests, release artifact generation | **COMPLETE** |
 | **Phase 12** | Antigravity CLI Governance & Token Economy | Antigravity governance docs, token economy rules, skill/hook/permission target architecture | **COMPLETE** |
-| **Phase 13** | Skill Bundle Registry | Distributed skills indexing and integrity hashing | *NEXT* |
-| **Phase 14** | Hook/Permission Integration | Hook boundaries, dynamic run approvals | *QUEUED* |
+| **Phase 13** | Skill Bundle Registry | Local skill bundle registry and starter skill templates | **COMPLETE** |
+| **Phase 14** | Hook/Permission Integration | Hook boundaries, dynamic run approvals | *NEXT* |
 | **Phase 15** | Cryptographic Provenance Engine | Signed evidence trail generation and cryptographic integrity seals | *QUEUED* |
 
 ---

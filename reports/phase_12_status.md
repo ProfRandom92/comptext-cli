@@ -44,9 +44,9 @@
 - **SECRETS**: Redacted from all configurations and outputs.
 - **POLICY_DECISIONS**:
   - Bounded agent run token guidelines to prevent context window bloat.
-  - Formulated hook interceptor checkpoints (SessionStart, PreToolUse, PostToolUse, PostPhase).
-  - Defined permissions boundaries and subagent review constraints.
-- **RISKS**: None. All new documents conform strictly to honest claims policies.
+  - Formulated hook target architecture for intended enforcement (SessionStart, PreToolUse, PostToolUse, PostPhase).
+  - Defined target permissions boundaries and subagent review constraints.
+- **RISKS**: Hook and permission documents are design targets until implemented/enforced by the host. All new documents conform strictly to honest claims policies.
 - **NEXT**: Phase 13: Skill Bundle Registry
 
 ---

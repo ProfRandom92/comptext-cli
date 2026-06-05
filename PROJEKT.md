@@ -86,7 +86,7 @@ git push
 | **Phase 9** | Validate and Benchmark | Local validation, dry-runs, and deterministic benchmark flows | **COMPLETE** |
 | **Phase 10** | MVP Stabilization & Release Readiness | Audit documentation, verify command flows, safety hygiene checks | **COMPLETE** |
 | **Phase 11** | Release Packaging | Package CLI binary, finalize manifests, release artifact generation | **COMPLETE** |
-| **Phase 12** | Antigravity CLI Governance & Token Economy | Hook, registry token bindings, runtime stake checks | **COMPLETE** |
+| **Phase 12** | Antigravity CLI Governance & Token Economy | Antigravity governance docs, token economy rules, skill/hook/permission target architecture | **COMPLETE** |
 | **Phase 13** | Skill Bundle Registry | Distributed skills indexing and integrity hashing | *NEXT* |
 | **Phase 14** | Hook/Permission Integration | Hook boundaries, dynamic run approvals | *QUEUED* |
 | **Phase 15** | Cryptographic Provenance Engine | Signed evidence trail generation and cryptographic integrity seals | *QUEUED* |

@@ -16,14 +16,14 @@ If a hook fails or an agent attempts to bypass logical constraints, the orchestr
 
 ---
 
-## 2. Permission Scopes
+## 2. Intended Permission Scopes (Target Baseline)
 
-The active execution environment is partitioned into narrow permission scopes:
+The target host policy baseline for the runtime environment is partitioned into the following intended permission scopes:
 
-- **Read Access**: Restricted to the repository workspace directory. Reading files under `/etc`, `C:\Windows`, system temp directories, or user home directories (outside the workspace) is denied by default.
-- **Write Access**: Restricted to allowed targets within the workspace. Writing to system folders or configuration targets outside the project root is denied.
-- **Network Access**: Denied by default. Enforces blockades on remote socket connections.
-- **Provider Access**: Denied by default. Enforces blockades on calling external LLM providers or remote endpoints unless the phase explicitly authorizes mock or local integrations.
+- **Read Access**: Restricted to the repository workspace directory. The intended permission baseline is that reading system paths (such as `/etc`, `C:\Windows`, system temp directories, or user home directories outside the workspace) should be denied by default. CompText treats this as a required orchestrator constraint, not a Rust-level guarantee.
+- **Write Access**: Restricted to allowed targets within the workspace. Target host policy should deny writing to system folders or configuration targets outside the project root.
+- **Network Access**: Denied by default. The intended permission baseline is that remote socket connections should be blocked by the orchestrator unless network access is explicitly authorized for the active phase.
+- **Provider Access**: Denied by default. Target host policy should block calling external LLM providers or remote endpoints unless the phase explicitly authorizes mock or local integrations.
 
 ---
 

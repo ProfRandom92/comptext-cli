@@ -12,6 +12,8 @@
 - **STATUS**: success
 - **FILES_CHANGED**:
   - `src/cli.rs`
+  - `PROJEKT.md`
+  - `README.md`
 - **DOCS_ADDED**:
   - `docs/AGENT_STATE_CONTRACT.md`
   - `docs/EVIDENCE_CONTROL_PLANE.md`
@@ -22,16 +24,18 @@
   - `cargo clippy -- -D warnings`
 - **VALIDATION**:
   - Parsed, capture, and verification integration tests passed successfully.
+  - Phase 16 PR passed Review-Gate and was merged to `main`.
 - **ARTIFACTS**:
   - `docs/AGENT_STATE_CONTRACT.md`
   - `docs/EVIDENCE_CONTROL_PLANE.md`
   - `reports/phase_16_status.md`
-- **GIT**: Committed to branch `phase-16-agent-state-contract` and pushed to origin.
+- **GIT**:
+  - Feature branch `phase-16-agent-state-contract` was merged via PR #2.
+  - Merge commit: `e0edbf29a91bb77c4a447164a133d3e1a2714c5e`.
 - **NETWORK**: offline-only
-- **SECRETS**: Redacted from all configurations and outputs.
+- **SECRETS**: not included in outputs.
 - **POLICY_DECISIONS**:
-  - The local control plane is implemented strictly offline-only with no network connection.
-  - The transient `.comptext` directory is ignored by file collection to prevent concurrent test race conditions.
-  - Agent state capture evidence is deterministically sorted by ID and file path to guarantee a stable artifact output.
+  - The local control plane remains offline-only.
+  - Agent state evidence is sorted by ID and file path for stable artifact output.
 - **RISKS**: Local checksums are supplementary change-detection metadata and do not represent unsupported assurance claims.
-- **NEXT**: Phase 16 Review-Gate closeout
+- **NEXT**: Phase 17 planning on feature branch.

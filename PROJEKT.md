@@ -9,8 +9,8 @@ CompText CLI is an experimental terminal context client for building determinist
 ### Core Architecture
 - **CLI Shell**: Command parser and handler for local, offline-first commands.
 - **Context Harvester**: Logic to inspect and aggregate codebase context.
-- **Deterministic Context Packs**: Unified payload stored in `.comptext/context_pack.latest.json` with keys sorted recursively and secrets redacted.
-- **Provider Adapters**: Pluggable provider system (Dummy, Ollama, OpenAI-compatible, etc.) with explicit network/security boundaries.
+- **Deterministic Context Packs**: Unified payload stored in `.comptext/context_pack.latest.json` with keys sorted recursively and sensitive values redacted.
+- **Provider Adapters**: Pluggable provider system (Dummy, Ollama, OpenAI-compatible, etc.) with explicit network and policy boundaries.
 - **Proposal/Apply Gate**: Workflows to review planned changes (`propose`) and apply them (`apply`) safely.
 
 ---
@@ -20,9 +20,10 @@ CompText CLI is an experimental terminal context client for building determinist
 ### Current State
 ```text
 CURRENT_PHASE: 16
-CURRENT_TASK: Agent State Contract Skeleton Review-Gate
-LAST_GREEN_PHASE: 15
-STATUS: review-pending
+CURRENT_TASK: Agent State Contract Skeleton
+LAST_GREEN_PHASE: 16
+STATUS: complete
+NEXT_ALLOWED_ACTION: Phase 17 planning on feature branch
 ```
 
 ### Autonomy Contract
@@ -32,17 +33,17 @@ STATUS: review-pending
 - **Phase Transition**: May commit and push changes after all validation passes for a green phase, and await Review-Gate feedback before transitioning to any new phase.
 
 ### Forbidden Rules
-- **No Private Keys / Secrets**: Forbidden to read or parse `.env`, `.env.*`, `.netrc`, `.git-credentials`, private keys (`*.key`, `*.pem`), or credentials.
-- **No Secret Leakage**: Forbidden to print environment variables, dump secrets in stdout/stderr, or write them to logs/reports/artifacts.
-- **No Untrusted Provider Action**: Forbidden to execute real cloud API provider calls during coding/validation phases (unless explicitly approved for live integration runs).
+- **No Credential Material Access**: Forbidden to read or parse credential-bearing local files or authentication material.
+- **No Sensitive Output Leakage**: Forbidden to print sensitive values in stdout/stderr or write them to logs/reports/artifacts.
+- **No Untrusted Provider Action**: Forbidden to execute real cloud API provider calls during coding/validation phases unless explicitly approved for live integration runs.
 - **No Destructive/Out-of-Scope Commands**: Forbidden to run shell operations outside the repo root.
-- **No Overwriting Remote History**: Forbidden to run `git push -f` or force push unless explicitly approved.
+- **No Overwriting Remote History**: Forbidden to run force-push operations unless explicitly approved.
 - **No Unsupported Assurance Claims**: Forbidden to make unsupported assurance claims.
 
 ### Stop Conditions
 The agent must halt execution and yield to the user when:
-1. API credentials or auth keys are required to proceed.
-2. Real cloud provider execution / live network calls are needed.
+1. Authentication material is required to proceed.
+2. Real cloud provider execution or live network calls are needed.
 3. Git merge conflicts arise that cannot be resolved safely.
 4. Validation fails and cannot be resolved with small, safe changes.
 5. Codebase requirements or user requests are contradictory.
@@ -90,7 +91,8 @@ git push
 | **Phase 13** | Skill Bundle Registry | Local skill bundle registry and starter skill templates | **COMPLETE** |
 | **Phase 14** | Hook/Permission Integration | Hook boundaries, dynamic run approvals | **COMPLETE** |
 | **Phase 15** | Cryptographic Provenance Engine | local SHA-256 provenance manifests | **COMPLETE** |
-| **Phase 16** | Agent State Contract | Add local agent-state capture/verify/report | **REVIEW-GATE** |
+| **Phase 16** | Agent State Contract | Add local agent-state capture/verify/report | **COMPLETE** |
+| **Phase 17** | Bounded Execution Monitoring | Planning only on feature branch after Review-Gate approval | **PLANNING** |
 
 ---
 

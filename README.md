@@ -167,7 +167,7 @@ flowchart LR
     P13 --> P14[Hook Integration]
     P14 --> P15[Provenance Engine]
     P15 --> P16[Agent State Contract]
-    P16 --> P17[Bounded Execution Monitoring Planning]
+    P16 --> P17[Antigravity Plugin Bundle]
 ```
 
 ---

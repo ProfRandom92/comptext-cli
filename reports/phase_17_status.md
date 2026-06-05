@@ -3,7 +3,21 @@
 - **PHASE**: Phase 17 Antigravity Plugin Bundle
 - **STATUS**: success
 - **FILES_CHANGED**:
+  - `.agent/skills/ctxt-phase-17-antigravity-plugin-bundle/SKILL.md`
+  - `PROJEKT.md`
+  - `README.md`
+  - `docs/ANTIGRAVITY_PLUGIN_BUNDLE.md`
+  - `reports/phase_17_status.md`
   - `src/cli.rs`
+  - `templates/antigravity/README.md`
+  - `templates/antigravity/agents/advisory_agents.json`
+  - `templates/antigravity/agents/subagents.json`
+  - `templates/antigravity/hooks/hooks.json`
+  - `templates/antigravity/mcp/mcp_config.json`
+  - `templates/antigravity/permissions/permissions.template.json`
+  - `templates/antigravity/plugin_manifest.json`
+  - `templates/antigravity/rules/comptext-rules.md`
+  - `templates/antigravity/skills/sample_skill/SKILL.md`
   - `tests/cli_smoke.rs`
 - **COMMANDS_RUN**:
   - `cargo check`

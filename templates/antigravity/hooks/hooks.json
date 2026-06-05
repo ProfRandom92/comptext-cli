@@ -1,0 +1,18 @@
+{
+  "hooks_policy_version": "1.0",
+  "description": "Template hooks policy for audit purposes only. No live runtime hooks.",
+  "pre_execution_hooks": [
+    {
+      "name": "audit_repo_paths",
+      "command": "cargo fmt --all --check",
+      "scope": "repo-relative"
+    }
+  ],
+  "post_execution_hooks": [
+    {
+      "name": "generate_provenance",
+      "command": "ctxt verify",
+      "scope": "repo-relative"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "sample-reader-server": {
+      "command": "node",
+      "args": ["./mcp/sample-reader.js"],
+      "env": {
+        "PATH_SCOPE": "repo-relative"
+      },
+      "serverUrl": "http://localhost:8080/mcp"
+    }
+  }
+}

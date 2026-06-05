@@ -87,9 +87,9 @@ CompText is for developers who want AI-assisted workflows with stronger boundari
 ```text
 Binary: ctxt
 Current phase: Phase 16
-Current task: Agent State Contract Skeleton
+Current task: Agent State Contract Skeleton Review-Gate
 Last green phase: Phase 15
-Status: complete
+Status: review-pending
 Next allowed action: Phase 16 Review-Gate closeout
 ```
 
@@ -114,7 +114,7 @@ Phase 12  Antigravity CLI Governance & Token Economy COMPLETE
 Phase 13  Skill Bundle Registry                  COMPLETE
 Phase 14  Hook/Permission Integration            COMPLETE
 Phase 15  Cryptographic Provenance Engine        COMPLETE
-Phase 16  Agent State Contract Skeleton          COMPLETE
+Phase 16  Agent State Contract Skeleton          REVIEW-GATE
 ```
 
 Next areas:

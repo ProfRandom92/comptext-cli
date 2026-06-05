@@ -72,3 +72,12 @@ This document serves as the local registry index for all authorized skills in th
 - **Forbidden Scope**: Implementing remote network registries, distributed downloads, or cryptographic proof logic.
 - **Validation Commands**: `cargo test`, `git status`
 - **Local SHA-256 Checksum**: `7B2F81C2AF5A97B2E0FA8A1243FABA9F605985A2F35E675F4C429DDBAE426B21`
+
+### 8. `ctxt-phase-14-hook-permission-integration`
+- **Path**: [.agent/skills/ctxt-phase-14-hook-permission-integration/SKILL.md](file:///.agent/skills/ctxt-phase-14-hook-permission-integration/SKILL.md)
+- **Description**: Documents and integrates inert specifications for hooks and permissions governance.
+- **Intended Use**: Documenting hook lifecycle targets, template schemas for permissions, and verification of implemented behavior.
+- **Allowed Scope**: Creating/modifying documentation files under `docs/` and inert template files.
+- **Forbidden Scope**: Modifying Rust codebase, active hook scripting/enforcement, and enabling provider network socket connectivity.
+- **Validation Commands**: `cargo test`
+- **Local SHA-256 Checksum**: `234A19F1E9E728412D5E0C1714D2A94F886509E2D47B54FC402EB84A1FD69A6D`

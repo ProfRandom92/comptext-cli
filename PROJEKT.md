@@ -90,6 +90,7 @@ git push
 | **Phase 13** | Skill Bundle Registry | Local skill bundle registry and starter skill templates | **COMPLETE** |
 | **Phase 14** | Hook/Permission Integration | Hook boundaries, dynamic run approvals | **COMPLETE** |
 | **Phase 15** | Cryptographic Provenance Engine | local SHA-256 provenance manifests | **COMPLETE** |
+| **Phase 16** | Agent State Contract | Planning only on feature branch | **PLANNING** |
 
 ---
 

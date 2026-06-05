@@ -119,8 +119,7 @@ Phase 15  Cryptographic Provenance Engine        COMPLETE
 Next areas:
 
 ```text
-Phase 15  Finish Review-Gate cleanup and re-review
-Phase 16  Agent State Contract planning only after Phase 15 PASS
+Phase 16  Agent State Contract planning on feature branch
 ```
 
 ### Review-Gate Operating Rules

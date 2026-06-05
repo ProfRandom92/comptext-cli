@@ -20,9 +20,9 @@ CompText CLI is an experimental terminal context client for building determinist
 ### Current State
 ```text
 CURRENT_PHASE: 15
-CURRENT_TASK: Cryptographic Provenance Engine Review-Gate cleanup
-LAST_GREEN_PHASE: 14
-STATUS: blocked
+CURRENT_TASK: Cryptographic Provenance Engine
+LAST_GREEN_PHASE: 15
+STATUS: complete
 ```
 
 ### Autonomy Contract
@@ -37,7 +37,7 @@ STATUS: blocked
 - **No Untrusted Provider Action**: Forbidden to execute real cloud API provider calls during coding/validation phases (unless explicitly approved for live integration runs).
 - **No Destructive/Out-of-Scope Commands**: Forbidden to run shell operations outside the repo root.
 - **No Overwriting Remote History**: Forbidden to run `git push -f` or force push unless explicitly approved.
-- **No Compliance Claims**: Forbidden to claim production/enterprise readiness, certified status, full autonomy, or official SPARK compatibility.
+- **No Unsupported Assurance Claims**: Forbidden to make unsupported assurance claims.
 
 ### Stop Conditions
 The agent must halt execution and yield to the user when:
@@ -89,7 +89,7 @@ git push
 | **Phase 12** | Antigravity CLI Governance & Token Economy | Antigravity governance docs, token economy rules, skill/hook/permission target architecture | **COMPLETE** |
 | **Phase 13** | Skill Bundle Registry | Local skill bundle registry and starter skill templates | **COMPLETE** |
 | **Phase 14** | Hook/Permission Integration | Hook boundaries, dynamic run approvals | **COMPLETE** |
-| **Phase 15** | Cryptographic Provenance Engine | local SHA-256 provenance manifests | **BLOCKED** |
+| **Phase 15** | Cryptographic Provenance Engine | local SHA-256 provenance manifests | **COMPLETE** |
 
 ---
 

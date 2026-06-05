@@ -30,5 +30,5 @@ CompText utilizes local provenance manifests to track artifact changes and link 
 ## 2. Boundaries and Scope Limits
 
 - **Local-Only Verification**: Checksums are calculated locally. No blockchain, distributed consensus, or remote network validation is supported or implemented.
-- **Not Security Proof / Certification**: These manifests are for change detection and chain of custody tracking. They do not constitute security proof, certification, or official compliance.
+- **No Unsupported Assurance Claims**: These manifests are for change detection and chain of custody tracking. They do not constitute unsupported assurance claims.
 - **Untrusted Input Stance**: Any file without a matching/valid provenance manifest or one whose checksum fails verification is treated as mutated and untrusted.

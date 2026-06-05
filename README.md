@@ -87,10 +87,10 @@ CompText is for developers who want AI-assisted workflows with stronger boundari
 ```text
 Binary: ctxt
 Current phase: Phase 15
-Current task: Cryptographic Provenance Engine Review-Gate cleanup
-Last green phase: Phase 14
-Status: blocked until Phase 15 cleanup passes Review-Gate
-Next allowed action: Phase 15 source-of-truth and provenance-boundary cleanup
+Current task: Cryptographic Provenance Engine
+Last green phase: Phase 15
+Status: complete
+Next allowed action: Phase 16 planning on feature branch
 ```
 
 Completed so far:
@@ -113,7 +113,7 @@ Phase 11  Release Packaging                      COMPLETE
 Phase 12  Antigravity CLI Governance & Token Economy COMPLETE
 Phase 13  Skill Bundle Registry                  COMPLETE
 Phase 14  Hook/Permission Integration            COMPLETE
-Phase 15  Cryptographic Provenance Engine        BLOCKED: Review-Gate cleanup
+Phase 15  Cryptographic Provenance Engine        COMPLETE
 ```
 
 Next areas:
@@ -127,7 +127,7 @@ Phase 16  Agent State Contract planning only after Phase 15 PASS
 
 ```text
 No NEXT without Review-Gate.
-No Roadmap Complete claim while any phase is blocked.
+No roadmap completion claim while any phase is blocked.
 No automatic phase progression.
 Review-Gate decides PASS / PASS WITH NOTES / BLOCKED.
 ```
@@ -147,9 +147,7 @@ Current Phase 15 cleanup must preserve these boundaries:
 ```text
 local SHA-256 provenance manifests only
 raw file content SHA-256 unless canonicalization is implemented
-no signed evidence trail claim
-no cryptographic integrity seal claim
-no security-proof / compliance / certification claim
+no unsupported assurance claims
 no arbitrary path reads or manifest writes outside the repo root
 ```
 

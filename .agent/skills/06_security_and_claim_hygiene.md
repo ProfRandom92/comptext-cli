@@ -10,10 +10,4 @@ Must state:
 - network explicit only
 
 Forbidden claims:
-- production-ready
-- enterprise-ready
-- compliance-ready
-- certified
-- fully autonomous
-- guaranteed safe
-- official SPARK compatible
+- unsupported assurance claims

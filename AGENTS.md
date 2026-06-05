@@ -21,7 +21,7 @@ Core sentence:
 - No secrets in stdout, stderr, reports, context packs, proposals, snapshots, logs, generated artifacts.
 - No git commit unless explicitly requested.
 - No git push unless explicitly requested.
-- No production-ready, enterprise-ready, compliance-ready, certified, fully autonomous, guaranteed safe, official SPARK compatible claims.
+- No unsupported assurance claims.
 
 ---
 

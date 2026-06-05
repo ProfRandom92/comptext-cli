@@ -24,7 +24,7 @@ Manage the local Skill Bundle Registry, maintain the index, and verify skill int
 
 ## Forbidden
 - Implementing distributed registry networking or remote downloads.
-- Adding cryptographic provenance or security proofs to hashes.
+- Adding unsupported assurance claims to hashes.
 - Mutating core Rust logic.
 
 ## Validation

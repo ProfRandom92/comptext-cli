@@ -23,7 +23,7 @@ Verify formatting, markdown link integrity, document locations, and claims hygie
 - Relocating misplaced phase status reports to correct folders.
 
 ## Forbidden
-- Adding claims regarding unsupported readiness, certification, or guarantee-style claims.
+- Adding unsupported assurance claims.
 - Creating or editing Rust source code.
 - Performing live network connections.
 

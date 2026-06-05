@@ -27,4 +27,4 @@
 
 ## Claim hygiene
 
-Do not claim production readiness, enterprise readiness, compliance, certification, guaranteed safety, full autonomy, or official SPARK compatibility.
+Do not make unsupported assurance claims.

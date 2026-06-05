@@ -4,7 +4,7 @@ This document serves as the local registry index for all authorized skills in th
 
 > [!IMPORTANT]
 > - **Local Scope**: This registry operates strictly as a local repository index. It is **not** a remote, distributed, or cloud-based plugin marketplace.
-> - **Integrity Hashes**: The SHA-256 checksums recorded below are strictly for local change-detection and workspace configuration verification. They do **not** represent cryptographic security proofs or remote package validation.
+> - **Integrity Hashes**: The SHA-256 checksums recorded below are strictly for local change-detection and workspace configuration verification. They do **not** represent unsupported assurance claims.
 
 ---
 
@@ -44,7 +44,7 @@ This document serves as the local registry index for all authorized skills in th
 - **Allowed Scope**: Modifying markdown documents in `docs/`, `reports/`, and repository root.
 - **Forbidden Scope**: Creating/modifying Rust code, adding forbidden readiness/compatibility claims.
 - **Validation Commands**: `git status --porcelain`
-- **Local SHA-256 Checksum**: `0E19E1D5443C75704E657CDBCEE882436F34F02F73F1A3551C37EF8D786B1CE2`
+- **Local SHA-256 Checksum**: `61E8929013C1FBF9DE29E94E8671F9F1B824F7F4D040753AF93ECA5A5C0C6032`
 
 ### 5. `ctxt-proposal-auditor`
 - **Path**: [.agent/skills/ctxt-proposal-auditor/SKILL.md](file:///.agent/skills/ctxt-proposal-auditor/SKILL.md)
@@ -71,7 +71,7 @@ This document serves as the local registry index for all authorized skills in th
 - **Allowed Scope**: Staging and editing `.agent/skills/REGISTRY.md` or `.agent/skills/registry.json`.
 - **Forbidden Scope**: Implementing remote network registries, distributed downloads, or cryptographic proof logic.
 - **Validation Commands**: `cargo test`, `git status`
-- **Local SHA-256 Checksum**: `7B2F81C2AF5A97B2E0FA8A1243FABA9F605985A2F35E675F4C429DDBAE426B21`
+- **Local SHA-256 Checksum**: `9EE4E5A999D563B95F6ACE081D41D3FA78FA33616FD219EE64E7381CFCC7DAD1`
 
 ### 8. `ctxt-phase-14-hook-permission-integration`
 - **Path**: [.agent/skills/ctxt-phase-14-hook-permission-integration/SKILL.md](file:///.agent/skills/ctxt-phase-14-hook-permission-integration/SKILL.md)

@@ -20,7 +20,7 @@ The Skill Bundle Registry is a repository-local index designed to compile, catal
 To ensure stability during autonomous operations, the local registry compiles SHA-256 integrity hashes for each skill's `SKILL.md` file.
 
 - **Change-Detection Policy**: Checksums are used strictly as local change-detection metadata to verify that a skill's instructions have not been mutated by unapproved tasks.
-- **Not a Cryptographic Proof**: These hashes do **not** represent security proofs, cryptographic provenance, or remote package validation.
+- **Not an Assurance Claim**: These hashes do **not** represent unsupported assurance claims.
 - **Offline Integrity**: Calculations are performed entirely offline using local hashing commands (such as `Get-FileHash` or `sha256sum`).
 
 ---

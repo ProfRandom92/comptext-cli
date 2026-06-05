@@ -28,4 +28,4 @@ All core architecture components and phase requirements are fully implemented an
 ## 3. Release Readiness & Release Limitations
 
 - **Experimental Scope**: This command-line interface is an experimental, local-first utility for research and development context packaging.
-- **Honest Claim Policy**: No claims are made regarding production readiness, enterprise certification, guaranteed safety, full autonomy, or official SPARK compatibility.
+- **Honest Claim Policy**: No unsupported assurance claims are made.

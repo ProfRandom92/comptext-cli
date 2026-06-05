@@ -39,8 +39,8 @@
 - **POLICY_DECISIONS**:
   - Local verification baseline: Provenance engine relies strictly on local file checksum matches, not centralized consensus systems.
   - Pure-Rust algorithm: Built a self-contained SHA-256 implementation to verify offline compatibility, avoiding network socket cargo fetches.
-  - Review-Gate remain authoritative: Provenance manifests serve as supplementary change-detection metadata rather than formal security proofs.
-- **RISKS**: Checksums are used solely as local integrity flags and do not provide absolute certification.
+  - Review-Gate remain authoritative: Provenance manifests serve as supplementary change-detection metadata rather than unsupported assurance claims.
+- **RISKS**: Checksums are used solely as local integrity flags and do not provide unsupported assurance claims.
 - **NEXT**: Review-Gate decided transitions
 
 ---

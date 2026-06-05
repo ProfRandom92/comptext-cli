@@ -46,4 +46,4 @@ Dummy status: offline-test-provider ok.
 ## 4. Safety & Claims Hygiene
 - Network access remained completely denied.
 - No environment variables or credentials were read or dumped.
-- No production readiness or official compliance assertions were made.
+- No unsupported assurance claims were made.

@@ -1,0 +1,16 @@
+{
+  "agents": [
+    {
+      "name": "advisory-linter-agent",
+      "role": "Linter Advisor",
+      "authority": "advisory-only",
+      "description": "Inspects code changes and offers suggestions. Holds no PASS/FAIL validation authority."
+    },
+    {
+      "name": "advisory-security-agent",
+      "role": "Security Advisor",
+      "authority": "advisory-only",
+      "description": "Reviews packages against advisory checklists. Holds no PASS/FAIL validation authority."
+    }
+  ]
+}

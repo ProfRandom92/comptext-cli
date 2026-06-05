@@ -1,0 +1,16 @@
+{
+  "plugin_name": "antigravity-sample-plugin",
+  "version": "1.0.0",
+  "description": "Template manifest for Antigravity plugin bundles.",
+  "execution_surface": "Antigravity",
+  "control_plane": "CompText",
+  "skills": [
+    "skills/sample_skill"
+  ],
+  "advisory_agents": [
+    "agents/advisory_agents.json"
+  ],
+  "mcp_config": "mcp/mcp_config.json",
+  "permissions_template": "permissions/permissions.template.json",
+  "hooks_policy": "hooks/hooks.json"
+}

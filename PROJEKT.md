@@ -19,11 +19,11 @@ CompText CLI is an experimental terminal context client for building determinist
 
 ### Current State
 ```text
-CURRENT_PHASE: 16
-CURRENT_TASK: Agent State Contract Skeleton
+CURRENT_PHASE: 17
+CURRENT_TASK: Antigravity Plugin Bundle Skeleton
 LAST_GREEN_PHASE: 16
-STATUS: complete
-NEXT_ALLOWED_ACTION: Phase 17 planning on feature branch
+STATUS: REVIEW-GATE
+NEXT_ALLOWED_ACTION: Await review gate confirmation
 ```
 
 ### Autonomy Contract
@@ -92,7 +92,7 @@ git push
 | **Phase 14** | Hook/Permission Integration | Hook boundaries, dynamic run approvals | **COMPLETE** |
 | **Phase 15** | Cryptographic Provenance Engine | local SHA-256 provenance manifests | **COMPLETE** |
 | **Phase 16** | Agent State Contract | Add local agent-state capture/verify/report | **COMPLETE** |
-| **Phase 17** | Bounded Execution Monitoring | Planning only on feature branch after Review-Gate approval | **PLANNING** |
+| **Phase 17** | Antigravity Plugin Bundle | Implement ctxt antigravity commands, local templates, and docs | **REVIEW-GATE** |
 
 ---
 

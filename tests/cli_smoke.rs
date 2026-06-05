@@ -210,3 +210,27 @@ fn apply_rejects_disallowed_paths() {
     let stderr = String::from_utf8(output.stderr).expect("stderr should be UTF-8");
     assert!(stderr.contains("Security Policy Violation: Path '.env' is not an allowed write path."));
 }
+
+#[test]
+fn test_antigravity_commands_skeleton() {
+    let _guard = test_lock();
+
+    let out_export = run(&["antigravity", "export"]);
+    assert!(out_export.contains("Antigravity bundle export initialized."));
+
+    let out_skills = run(&["antigravity", "skills", "validate"]);
+    assert!(out_skills.contains("Validating repo-local skills..."));
+    assert!(out_skills.contains("All skill paths verified."));
+
+    let out_agents = run(&["antigravity", "agents", "export"]);
+    assert!(out_agents.contains("Exporting advisory subagents metadata..."));
+    assert!(out_agents.contains("advisory only"));
+
+    let out_hooks = run(&["antigravity", "hooks", "audit"]);
+    assert!(out_hooks.contains("Auditing hook permissions configuration..."));
+    assert!(out_hooks.contains("No live runtime hooks detected"));
+
+    let out_plugin = run(&["antigravity", "plugin", "package"]);
+    assert!(out_plugin.contains("Packaging repo-local plugin bundle..."));
+    assert!(out_plugin.contains("MCP outputs treated as untrusted input"));
+}

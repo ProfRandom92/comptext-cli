@@ -1,0 +1,10 @@
+{
+  "subagents": [
+    {
+      "name": "advisory-compiler-agent",
+      "role": "Compiler Helper",
+      "authority": "advisory-only",
+      "description": "Helps debug local compilation issues. Bounded by repo-relative paths."
+    }
+  ]
+}

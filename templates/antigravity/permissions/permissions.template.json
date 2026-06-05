@@ -1,0 +1,22 @@
+{
+  "permissions_version": "1.0",
+  "scope": "repo-relative",
+  "allowed_operations": [
+    {
+      "action": "command",
+      "target": "cargo test"
+    },
+    {
+      "action": "write_file",
+      "target": ".comptext/context_pack.latest.json"
+    },
+    {
+      "action": "read_url",
+      "target": "https://raw.githubusercontent.com/ProfRandom92/comptext-cli/main/MANIFEST.json"
+    },
+    {
+      "action": "mcp",
+      "target": "sample-reader-server"
+    }
+  ]
+}

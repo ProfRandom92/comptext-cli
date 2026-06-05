@@ -20,5 +20,5 @@ CompText maintains a strict distinction between behaviors actively executed by t
 ## 2. Local-Only and Offline-First baseline
 
 - **Authoritative Review-Gate**: The primary security enforcement layer remains the manual review and verification of proposed changes in the `proposals/` folder before running the apply gate (`ctxt apply`).
-- **No Rust-Level Enforcements**: Hooks and permissions are designed to be enforced by the hosting orchestrator (such as the Antigravity system). The local `ctxt` Rust binary does not contain sandboxing or active operating-system-level socket blockades.
+- **No Rust-Level Enforcements**: Hooks and permissions represent target policies for the hosting orchestrator (such as the Antigravity system). The local `ctxt` Rust binary does not contain active operating-system-level socket blockades.
 - **Offline Integrity**: Calculations and change-detection hashes are performed entirely offline using local utilities. No remote distributed marketplaces or online registries are used.

@@ -4,22 +4,22 @@ This document provides the inert specification format for policy interceptor hoo
 
 ---
 
-## 1. Interceptor Lifecycle Targets
+## 1. Interceptor Lifecycle Targets (Planned / Not Active)
 
 ```text
-[ SessionStart ] ──────► Instantiates the workspace validation profile
+[ SessionStart ] ──────► Target-only: planned to initialize the validation profile (not active)
        │
        ▼
-[ PreToolUse ] ────────► Intercepts and validates tool input parameters
+[ PreToolUse ] ────────► Target-only: planned to validate tool input parameters (not active)
        │
        ▼
   ( Tool Run )
        │
        ▼
-[ PostToolUse ] ───────► Inspects and filters output streams
+[ PostToolUse ] ───────► Target-only: planned to filter output streams (not active)
        │
        ▼
-[ PostPhase ] ─────────► Evaluates phase completeness and git tree clean status
+[ PostPhase ] ─────────► Target-only: planned to check phase completeness (not active)
 ```
 
 ---
@@ -27,7 +27,7 @@ This document provides the inert specification format for policy interceptor hoo
 ## 2. Specification Formats (Inert Targets)
 
 ### SessionStart Specification
-- **Intent**: Initializes the session state tracking profile.
+- **Intent**: Target-only: planned to initialize the session state tracking profile (not active).
 - **Inert Spec**:
   ```json
   {
@@ -41,7 +41,7 @@ This document provides the inert specification format for policy interceptor hoo
   ```
 
 ### PreToolUse Specification
-- **Intent**: Validates tool invocation arguments before execution.
+- **Intent**: Target-only: planned to validate tool invocation arguments before execution (not active).
 - **Inert Spec**:
   ```json
   {
@@ -55,7 +55,7 @@ This document provides the inert specification format for policy interceptor hoo
   ```
 
 ### PostToolUse Specification
-- **Intent**: Filters and sanitizes outputs before returning them to the model context.
+- **Intent**: Target-only: planned to filter and sanitize outputs before returning them to the model context (not active).
 - **Inert Spec**:
   ```json
   {

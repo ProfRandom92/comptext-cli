@@ -44,7 +44,7 @@
 - **NETWORK**: offline-only (no network requests made or permitted during design and layout).
 - **SECRETS**: Redacted from all configurations and outputs.
 - **POLICY_DECISIONS**:
-  - Explicit demarcation of implemented behaviors (local validation, context harvesting, apply gate pathing) vs. target/inert architectures (policy interceptor hooks and host execution sandboxing).
+  - Explicit demarcation of implemented behaviors (local validation, context harvesting, apply gate pathing) vs. target/inert architectures (policy interceptor hooks and host execution constraints).
   - Maintained the authoritative status of the Proposal/Apply Gate and offline-first context model.
   - Indexed the new Phase 14 skill under `.agent/skills/REGISTRY.md` using SHA-256 for local change-detection verification only.
 - **RISKS**: Policy interceptor hooks and runtime permissions represent planned design integrations for the host/orchestrator; they do not represent active Rust-level execution blockades or guarantees.
@@ -58,4 +58,4 @@
 3. **Runtime Permissions**: Authored `docs/RUNTIME_PERMISSION_TEMPLATE.md` defining inert schemas for read/write/network/provider orchestrator constraints.
 4. **Starter Templates**: Placed inert policy and permission configurations under `templates/hooks/` and `templates/permissions/` directories.
 5. **Skill Registry updates**: Configured and registered `.agent/skills/ctxt-phase-14-hook-permission-integration/SKILL.md` with explicit allowed/forbidden scopes and recomputed local SHA-256 change-detection integrity hash.
-6. Review-Gate Cleanup: Updated README project tracking to Phase 13 COMPLETE and Phase 14 NEXT. Cleaned starter skill files to remove claim-sensitive release, readiness, compatibility, and guarantee-style wording. Recomputed and updated local SHA-256 change-detection hashes in the registry index.
+6. Review-Gate Cleanup: Updated README project tracking to Phase 14 COMPLETE and Phase 15 NEXT. Cleaned integration docs and templates to remove claim-sensitive hook, runtime, and host execution wording. Verified local change-detection hashes.

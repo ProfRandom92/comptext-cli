@@ -9,3 +9,9 @@ This template specifies target runtime permission configurations. It is inert an
   - **Write**: Target-only restriction to allowed paths within the codebase only.
   - **Network**: Target-only blocking of remote sockets by default.
   - **Provider**: Target-only restriction of calls to mock/local adapters.
+
+- **Metadata**:
+  - Requires host/orchestrator integration.
+  - Not executed by Rust CLI.
+  - No secrets.
+  - No network by default.

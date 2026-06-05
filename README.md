@@ -185,24 +185,27 @@ cargo run --bin ctxt -- benchmark --provider dummy "How should I test this repo?
 ## Implemented Commands
 
 ```bash
+# Diagnostic & Metadata
 ctxt --help
-ctxt doctor
 ctxt version
+ctxt doctor
 ctxt providers list
 
+# Context Pack Operations
 ctxt context inspect
-ctxt context pack --task "..."
+ctxt context pack --task "Stabilization check"
 
-ctxt ask --dry-run "..."
-ctxt ask --provider dummy "..."
-ctxt ask --provider ollama-local "..."
-ctxt ask --provider openai-compatible --dry-run "..."
+# Ask Pipeline
+ctxt ask --dry-run "How should I test this repo?"
+ctxt ask --provider dummy "How should I test this repo?"
 
-ctxt propose --provider dummy "..."
-ctxt apply proposals/proposal.latest.json --yes
-
+# Proposal & Apply Workflows
+ctxt propose --provider dummy "Add context inspect"
+ctxt apply proposals/proposal.latest.json
 ctxt validate
-ctxt benchmark --provider dummy "..."
+
+# Local Benchmarking
+ctxt benchmark --provider dummy "How should I test this repo?"
 ```
 
 Live provider usage is intentionally gated by configuration and policy. Offline/dummy workflows are the default path for local development and CI-style checks.

@@ -18,4 +18,4 @@ This document clarifies the classification, location, and Git tracking rules for
 - **Classification**: Committed audit evidence.
 - **Location**: `reports/` at the repository root.
 - **Git Policy**: **Tracked**. These files serve as permanent evidence of completed developmental milestones, including network constraints and validation command logs.
-- **Purpose**: Documents phase reports and compliance tracking logs (e.g., `reports/phase_*_status.md`).
+- **Purpose**: Documents phase reports and milestone tracking logs (e.g., `reports/phase_*_status.md`).

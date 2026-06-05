@@ -30,7 +30,7 @@ Use this checklist to verify the stability, security boundaries, and validation 
   ```bash
   cargo clippy -- -D warnings
   ```
-- [ ] Production build succeeds:
+- [ ] Release target build succeeds:
   ```bash
   cargo build --release
   ```

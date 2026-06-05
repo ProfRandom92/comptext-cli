@@ -4,14 +4,17 @@ Skills are progressive context-loading capsules that guide agent behavior for sp
 
 ---
 
-## 1. Skill File Layout
+## 1. Skill Folder and File Layout
 
-Every skill must live in the `.agent/skills/` (or `.agents/skills/`) directory as a markdown file structured as:
+Every skill must be authored as a directory under `.agent/skills/` (or `.agents/skills/`) containing a `SKILL.md` file. For example, `.agent/skills/ctxt-antigravity-governance/SKILL.md`.
+
+The frontmatter of each `SKILL.md` file must be structured as:
 
 ```markdown
 ---
 name: ctxt-phase-XX-name
-summary: "A brief 1-line description of the skill for the compatibility manifest."
+description: "A detailed description of the skill used as the primary routing and trigger field by the Antigravity Orchestrator."
+summary: "Optional secondary metadata summarizing the skill."
 ---
 
 # Skill: ctxt-phase-XX-name
@@ -40,7 +43,7 @@ The requested response format (e.g., standard status report schema).
 ## 2. YAML Trigger Tracing
 
 Triggers in the YAML frontmatter inform the Antigravity Orchestrator when a skill is relevant. Triggers are resolved from:
-- The **task description** matching the skill `name` or `summary`.
+- The **task description** matching the skill `name` or `description`.
 - Active **phase declarations** (e.g., `Phase 12`).
 
 ---

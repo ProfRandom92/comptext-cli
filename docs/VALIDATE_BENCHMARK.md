@@ -4,7 +4,7 @@ This document details the usage and specifications for the local validation and 
 
 ## 1. Local Validation Command
 
-The `ctxt validate` command prints the standard local validation commands used to ensure codebase integrity and safety compliance.
+The `ctxt validate` command prints the standard local validation commands used to ensure codebase integrity and safety verification.
 
 ### Usage
 ```bash

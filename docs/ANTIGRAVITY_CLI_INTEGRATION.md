@@ -37,7 +37,7 @@ flowchart TD
     subagent -->|7. audit proposal| prop
     agent -->|8. apply gate| ctxt
     ctxt -->|9. policy hook validation| policy
-    policy -->|10. sandboxed commit| repo
+    policy -->|10. sandboxed write execution| repo
 ```
 
 ---
@@ -45,5 +45,5 @@ flowchart TD
 ## 3. Operational Flow
 
 1. **Context Harvesting**: Before launching a task, the Antigravity Orchestrator executes `ctxt context pack --task "<task_description>"`. This harvest sanitizes the repository state, redacting secrets and building a deterministic Context Pack under `.comptext/context_pack.latest.json`.
-2. **Proposal Generation**: When proposing changes, the agent runs `ctxt propose --provider dummy "<prompt>"`. This creates a structured JSON patch proposal under `proposals/` without mutating source files.
+2. **Proposal Generation**: When proposing changes, the agent runs `ctxt propose --provider dummy "<prompt>"`. This creates a structured JSON patch proposal under `proposals/` without mutating source files. Note that `proposals/` contains ignored/generated runtime state and is excluded from Git tracking in the release package baseline.
 3. **Apply and Verification**: To modify the codebase, the agent calls `ctxt apply <proposal_path>`. The CompText control plane intercepts the request, validates that target files lie within allowed write boundaries, prompts for user confirmation (or validation suite success), applies the patches, and runs local tests.

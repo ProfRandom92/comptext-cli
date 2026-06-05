@@ -1,6 +1,6 @@
 # Permissions Model
 
-CompText utilizes a defense-in-depth permissions model to restrict agent actions at the operating system and execution environment level. 
+CompText utilizes a defense-in-depth permissions model to restrict agent actions at the orchestrator and runtime execution environment level. 
 
 ---
 
@@ -10,9 +10,9 @@ Permissions do not serve as the primary policy compiler. Instead, they act as lo
 
 1. **Safety Constitution (`AGENTS.md`)**: The primary rulebook governing logical behavior.
 2. **Hook Interceptors (`docs/HOOK_GOVERNANCE.md`)**: Contextual software gates executing within the workspace.
-3. **Permissions Model**: Hardware/runtime restrictions enforced by the orchestration host.
+3. **Permissions Model**: Orchestrator-enforced runtime restrictions acting as a defense-in-depth policy layer.
 
-If a hook fails or an agent attempts to bypass logical constraints, the permissions model catches the violation and halts the execution thread.
+If a hook fails or an agent attempts to bypass logical constraints, the orchestrator's runtime permissions model acts as a secondary layer to block unauthorized actions.
 
 ---
 

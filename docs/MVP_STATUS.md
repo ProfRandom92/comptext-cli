@@ -16,7 +16,7 @@ All core architecture components and phase requirements are fully implemented an
 
 ---
 
-## 2. Security Boundaries & Constitution Compliance
+## 2. Security Boundaries & Constitution Alignment
 
 - **Model/Provider Output Untrusted**: All suggestions, snippets, and patches produced by provider models are treated as untrusted inputs. They are subjected to the apply-time write sandbox and post-apply validation gates.
 - **Network Boundaries (Deny-by-Default)**: Real external network execution is strictly denied unless explicitly authorized. The OpenAI-compatible adapter operates entirely offline in this MVP phase.

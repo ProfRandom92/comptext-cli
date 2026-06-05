@@ -8,7 +8,7 @@ Subagents allow parallel task execution and validation. To prevent recursive exe
 
 Only the following specialist subagent roles are permitted in the CompText workspace:
 
-- **`security-reviewer`**: Audits codebase modifications and document updates for secret leakage, credentials, and forbidden compliance claims.
+- **`security-reviewer`**: Audits codebase modifications and document updates for secret leakage, credentials, and forbidden readiness/compatibility claims.
 - **`ci-diagnoser`**: Analyzes Cargo compilation failures, clippy warnings, or test logs, and recommends precise, localized corrections.
 - **`docs-consistency-checker`**: Audits documentation links, checks for file presence, and verifies README consistency.
 - **`proposal-auditor`**: Reviews proposal JSON structures before apply gate execution, confirming target write path safety.

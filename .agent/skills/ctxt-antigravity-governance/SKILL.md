@@ -1,5 +1,6 @@
 ---
 name: ctxt-antigravity-governance
+description: "Defines token-efficient governance and operating guidelines for agent runs."
 summary: "Defines token-efficient governance and operating guidelines for agent runs."
 ---
 

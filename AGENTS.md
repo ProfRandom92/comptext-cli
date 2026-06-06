@@ -37,10 +37,10 @@ To ensure long-running safe autonomous execution, the following rules are strict
 6. **Proposal Mutability Boundary**: Proposal outputs (in `proposals/`) must never mutate active source files until approved and applied through the apply gate.
 7. **Subagent Restrictions**: Subagents may validate, search, or inspect codebase assets but must never be used to bypass network, API key, browser, or write restrictions.
 8. **Browser Sandbox**: Browser use is denied by default and requires explicit phase permission.
-9. **Network Sandbox**: Network socket connections are denied by default and require explicit phase permission.
+9. **Network Sandbox**: Network socket connections are denied by default and requires explicit phase permission.
 10. **Provider Isolation**: Live provider LLM calls are denied by default and require explicit phase permission.
 11. **Secrets Redaction**: Private keys, `.env` file details, passwords, and API credentials must never be read, printed, packed, proposed, or committed.
-12. **Git Progression Pipeline**: After completing a phase successfully (all checks green), the agent must validate the build, update `PROJEKT.md` status, commit the modifications, and push changes to origin.
+12. **Git Safety Gate**: After completing a phase successfully, the agent may update project status and report local validation evidence. `git commit` is allowed only when the phase prompt explicitly requests a commit. `git push`, remote branch creation, PR creation, and merge actions require separate explicit user authorization. If authentication, network access, or remote Git interaction is needed without that authorization, halt and report `BLOCKED`.
 13. **Explicit Halt**: If blocked by stop conditions, the agent must immediately stop execution and report the precise reason to the user.
 
 ---
@@ -96,7 +96,7 @@ FILES_CHANGED: <list of changed files>
 COMMANDS_RUN: <list of commands executed>
 VALIDATION: <validation output summary>
 ARTIFACTS: <list of generated artifacts>
-GIT: <git commit and push hash/result>
+GIT: <commit only if explicitly requested; push/remote action only if separately explicitly authorized>
 NETWORK: <network status during phase>
 SECRETS: <secrets status>
 POLICY_DECISIONS: <policy status>

@@ -11,7 +11,7 @@
   "post_execution_hooks": [
     {
       "name": "generate_provenance",
-      "command": "ctxt verify",
+      "command": "ctxt verify .comptext/context_pack.latest.json",
       "scope": "repo-relative"
     }
   ]

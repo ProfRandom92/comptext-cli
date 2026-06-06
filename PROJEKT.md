@@ -30,10 +30,10 @@ NEXT_ALLOWED_ACTION: Await review gate confirmation
 - **Allowed Modifications**: May edit source code (`src/**`), tests (`tests/**`), docs (`docs/**`), skills (`.agent/skills/**`, `.agents/skills/**`), prompts (`prompts/**`), and configurations (`Cargo.toml`, `comptext.example.toml`).
 - **Allowed Commands**: May run local compilation, lint checks, tests, and formatting validation.
 - **Error Remediation**: May automatically modify code to fix local build, format, test, or clippy failures.
-- **Phase Transition**: May commit and push changes after all validation passes for a green phase, and await Review-Gate feedback before transitioning to any new phase.
+- **Phase Transition**: May update project status and phase reports after local validation passes. A local commit requires explicit phase-level authorization. Any remote publication, branch publication, PR creation, or merge requires separate explicit user authorization. If remote interaction is needed without that authorization, halt as `BLOCKED`.
 
 ### Forbidden Rules
-- **No Credential Material Access**: Forbidden to read or parse credential-bearing local files or authentication material.
+- **No Secret Material Access**: Forbidden to read or parse secret-bearing local files or private auth material.
 - **No Sensitive Output Leakage**: Forbidden to print sensitive values in stdout/stderr or write them to logs/reports/artifacts.
 - **No Untrusted Provider Action**: Forbidden to execute real cloud API provider calls during coding/validation phases unless explicitly approved for live integration runs.
 - **No Destructive/Out-of-Scope Commands**: Forbidden to run shell operations outside the repo root.
@@ -42,12 +42,13 @@ NEXT_ALLOWED_ACTION: Await review gate confirmation
 
 ### Stop Conditions
 The agent must halt execution and yield to the user when:
-1. Authentication material is required to proceed.
+1. Secret or private auth material is required to proceed.
 2. Real cloud provider execution or live network calls are needed.
 3. Git merge conflicts arise that cannot be resolved safely.
 4. Validation fails and cannot be resolved with small, safe changes.
 5. Codebase requirements or user requests are contradictory.
 6. Target files outside the repository root need to be accessed or created.
+7. Local commit, remote publication, branch publication, PR creation, or merge is needed without explicit authorization for that exact action.
 
 ### Global Validation Suite
 The agent must run and satisfy the following validation suite before completing any phase:
@@ -58,14 +59,25 @@ cargo test
 cargo clippy -- -D warnings
 ```
 
-### Git Progression Rule
-Upon achieving green status for any phase, the agent must execute:
-```bash
-git status
-git add .
-git commit -m "<phase commit message>"
-git push
-```
+### Git Safety Gate
+Passing validation does not imply permission to mutate Git or remote state.
+
+Allowed without separate Git authorization:
+- read-only status checks
+- read-only diff/stat inspection
+- read-only latest-commit inspection
+
+Requires explicit phase-level authorization:
+- staging phase changes
+- creating a local commit
+
+Requires separate explicit remote authorization:
+- publishing to remote
+- creating remote branches
+- creating PRs
+- merging
+
+If remote Git interaction is required without explicit remote authorization, stop and report `BLOCKED`.
 
 ---
 
@@ -105,7 +117,7 @@ FILES_CHANGED: <list of changed files>
 COMMANDS_RUN: <list of commands executed>
 VALIDATION: <validation output summary>
 ARTIFACTS: <list of generated artifacts>
-GIT: <git commit and push hash/result>
+GIT: <read-only status by default; local commit only if explicitly authorized; remote action only if separately explicitly authorized>
 RISKS: <analysis of potential risks>
 NEXT: <next action or phase name>
 ```
